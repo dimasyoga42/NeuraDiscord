@@ -86,7 +86,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           .setDescription("Neura hadir tidak hanya di discord melainkan juga ada di web dan whatsapp")
           .addFields([
             { name: "Guide Toram", value: "/perpus - daftar guide", inline: true },
-            { name: "Toram Tools", value: "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia", inline: true }
+            { name: "Toram Tools", value: "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia\n/xtal - melihat detail xtal\n/regis - melihat detail regis\n/ability - melihat detail ability", inline: true }
           ])
           .setTimestamp()
           .setFooter({ text: "Neura Sama" })
@@ -168,7 +168,6 @@ app.on(Events.InteractionCreate, async (interaction) => {
         }
         break;
       }
-
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
     }
