@@ -187,7 +187,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
               .setTimestamp()
               .setFooter({ text: "Neura Sama" })
           })
-          await interaction.editReply({ embeds: [buffMessage] })
+          await interaction.editReply({ embeds: buffMessage })
         } catch (error) {
           throw error
           console.log(error.message)
