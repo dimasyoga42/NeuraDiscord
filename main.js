@@ -34,6 +34,9 @@ const commands = [
   new SlashCommandBuilder()
     .setName("bantuan")
     .setDescription("Lihat semua menu Neura Sama"),
+  new SlashCommandBuilder()
+    .setName("buff")
+    .setDescription("untuk melihat daftar buffland"),
 
   new SlashCommandBuilder()
     .setName("bos")
@@ -167,6 +170,28 @@ app.on(Events.InteractionCreate, async (interaction) => {
           }
         }
         break;
+      }
+      case buff: {
+        try {
+          await interaction.deferReply()
+          const data = await supabase.from("buff").select("*")
+          if (!data || data.length === 0) return interaction.editReply({
+            content: "data buff gagal di muat"
+          });
+          const buff = data[0]
+          const buffMessage = buff.map((item) => {
+            return new EmbedBuilder()
+              .setColor(0x000)
+              .setTitle(item.name)
+              .setDescription(item.code)
+              .setTimestamp()
+              .setFooter({ text: "Neura Sama" })
+          })
+          await interaction.editReply({ embeds: [buffMessage] })
+        } catch (error) {
+          throw error
+          console.log(error.message)
+        }
       }
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
