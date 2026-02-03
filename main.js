@@ -108,10 +108,10 @@ app.on(Events.InteractionCreate, async (interaction) => {
         }
         const bos = data[0];
 
-        // LOGIKA PENANGANAN DESKRIPSI (Max 4096 Karakter)
+
         let fullStat = bos.stat || 'No Data';
 
-        // Tetap lakukan proteksi agar tidak crash jika > 4096
+
         if (fullStat.length > 4000) {
           fullStat = fullStat.substring(0, 4000) + "... (karakter maksimal tercapai)";
         }
@@ -119,7 +119,6 @@ app.on(Events.InteractionCreate, async (interaction) => {
         const embed = new EmbedBuilder()
           .setColor(0x0099FF)
           .setTitle(`Boss Info: ${bos.name}`)
-          // Pindahkan statistik ke Deskripsi agar bisa muat banyak
           .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n\`\`\``)
           .addFields([
             { name: 'Lokasi', value: bos.spawn || '-', inline: true },
@@ -133,7 +132,6 @@ app.on(Events.InteractionCreate, async (interaction) => {
         break;
       }
       case "banner": {
-        // 1. Status interaksi berubah menjadi 'deferred'
         await interaction.deferReply();
 
         try {
@@ -176,7 +174,6 @@ app.on(Events.InteractionCreate, async (interaction) => {
     }
   } catch (error) {
     console.error(`Error pada perintah ${commandName}:`, error);
-    // Cek apakah interaksi sudah dibalas atau ditunda (deferred)
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content: "Terjadi kesalahan internal.", ephemeral: true });
     } else {
