@@ -178,8 +178,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
           if (!data || data.length === 0) return interaction.editReply({
             content: "data buff gagal di muat"
           });
-          const buff = data[0]
-          const buffMessage = buff.map((item) => {
+          const buffs = data[0]
+          const buffMessage = buffs.map((item) => {
             return new EmbedBuilder()
               .setColor(0x000)
               .setTitle(item.name)
