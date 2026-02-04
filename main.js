@@ -340,6 +340,7 @@ ${combined.map((item) => {
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
+          const errorMsg = "Terjadi kesalahan teknis saat memproses data Crysta.";
           if (interaction.deferred || interaction.replied) {
             await interaction.editReply(errorMsg);
           } else {
