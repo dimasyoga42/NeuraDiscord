@@ -340,11 +340,17 @@ ${combined.map((item) => {
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply(errorMsg);
+          } else {
+            await interaction.reply({ content: errorMsg, ephemeral: true });
+          }
         }
       }
 
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
+
     }
 
   } catch (error) {
