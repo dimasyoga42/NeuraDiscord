@@ -298,8 +298,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
           return new EmbedBuilder()
             .setColor(color.green)
             .setTitle(`[${item.category}] ${item.name}`)
-            .setDescription(`📍 **Lokasi:** ${item.loc}\n📈 **EXP:** ${item.exp}`)
-            .setAuthor({ name: `Target Level: ${item.level}` });
+            .setDescription(`**Lokasi:** ${item.loc}\n**EXP:** ${item.exp}`)
+            .setAuthor({ name: `Neura Sama` });
         });
 
         await interaction.editReply({ embeds: levelingEmbeds });
