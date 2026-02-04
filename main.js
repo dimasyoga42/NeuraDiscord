@@ -44,6 +44,33 @@ const commands = [
         .setDescription("masukan nama buff")
         .setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName("xtal")
+    .setDescription("melihat information xtall")
+    .addStringOption(option =>
+      option
+        .setName("xtalname")
+        .setDescription("masukan nama xtal yang dicari")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("ability")
+    .setDescription("melihat information ability")
+    .addStringOption(option =>
+      option
+        .setName("abilityname")
+        .setDescription("masukan nama ability yang dicari")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("lv")
+    .setDescription("melihat information xtall")
+    .addStringOption(option =>
+      option
+        .setName("yourlevel")
+        .setDescription("masukan level anda")
+        .setRequired(true)
+    ),
 
   new SlashCommandBuilder()
     .setName("bos")
@@ -213,6 +240,31 @@ app.on(Events.InteractionCreate, async (interaction) => {
           }
         }
         break;
+      }
+      case "xtal": {
+        try {
+          await interaction.deferReply()
+          const xtalName = interaction.options.getString("yourlevel")
+          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`).limit(10)
+          if (!data || data.length === 0 || error) return await interaction.editReply("data xtal tidak ditemukan");
+
+          const messageXtal = data.map((item) => {
+            return new EmbedBuilder()
+              .setColor(color.gold)
+              .setTitle(item.name)
+              .addFields([
+                { name: "type", value: item.type },
+                { name: "upgrade", value: item.upgrade },
+                { name: "route", value: item.route },
+              ])
+              .setDescription(item.stat)
+              .setFooter({ text: "Neura Sama" })
+              .setTimestamp()
+          });
+          await interaction.editReply({ embeds: messageXtal })
+        } catch (err) {
+          console.log(err.message)
+        }
       }
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
