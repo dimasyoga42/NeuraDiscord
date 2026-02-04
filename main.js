@@ -326,9 +326,9 @@ ${combined.map((item) => {
           const nameAbility = interaction.options.getString("name")
           const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(5)
           if (!data || data.length === 0) return interaction.editReply("tidak menemukan ability yang di cari")
-          const msgTxt = `
-          ${data.map((item) => {
-            return new EmbedBuilder()
+
+          data.map((item) => {
+            const msgTxt = new EmbedBuilder()
               .setColor(color.cyan)
               .setTitle("Ability search")
               .addFields([
@@ -338,8 +338,7 @@ ${combined.map((item) => {
               ])
               .setTimestamp()
               .setFooter({ text: "Neura Sama" })
-          })}
-          `
+          })
 
           await interaction.editReply({ embeds: msgTxt });
         } catch (error) {
