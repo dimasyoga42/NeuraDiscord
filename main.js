@@ -292,17 +292,32 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "lv": {
         await interaction.deferReply();
         const userLv = interaction.options.getString("level");
-        const data = await lv(userLv);
-        if (data.length === 0) return interaction.editReply("Tidak ada saran leveling ditemukan.");
-        const levelingEmbeds = data.slice(0, 5).map(item => {
-          return new EmbedBuilder()
-            .setColor(color.green)
-            .setTitle(`[${item.category}] ${item.name} ${item.level}`)
-            .setDescription(`**Lokasi:** ${item.location}\n**EXP:** ${item.exp}`)
-            .setAuthor({ name: `Neura Sama` });
-        });
 
-        await interaction.editReply({ embeds: levelingEmbeds });
+        try {
+          const data = await lv(userLv);
+
+          if (data.length === 0) {
+            return interaction.editReply("Tidak ada saran leveling ditemukan.");
+          }
+
+          const bosses = data.filter(item => item.category === "Boss");
+          const miniBosses = data.filter(item => item.category === "Mini Boss");
+          const combined = [...bosses.slice(0, 5), ...miniBosses.slice(0, 5)];
+
+          const levelingEmbeds = combined.map(item => {
+            return new EmbedBuilder()
+              .setColor(color.green)
+              .setTitle(`[${item.category}] ${item.name} ${item.level}`)
+              .setDescription(`**Lokasi:** ${item.location}\n**EXP:** ${item.exp}`)
+              .setAuthor({ name: `Neura Sama` });
+          });
+
+          await interaction.editReply({ embeds: levelingEmbeds });
+
+        } catch (error) {
+          console.error("Error in lv command:", error);
+          await interaction.editReply("Gagal mengambil data leveling");
+        }
         break;
       }
 

@@ -3,7 +3,6 @@ import * as cheerio from "cheerio"
 
 export const lv = async (currentLv) => {
   try {
-    // Validasi input
     if (!currentLv || isNaN(currentLv)) {
       throw new Error("Invalid level input")
     }
@@ -25,23 +24,23 @@ export const lv = async (currentLv) => {
     const $ = cheerio.load(html)
     const result = []
 
-    $(".table-grid").each((_, table) => {
+    $(".table-grid.item-leveling").each((_, table) => {
       const title = $(table).find("h3").text().trim()
 
       if (title === "Boss" || title === "Mini Boss") {
-        $(table).find("li").each((__, row) => {
-          const level = $(row).find(".level-col-1").text().replace("Lv", "").trim()
-          const name = $(row).find(".level-col-2 a").text().trim()
-          const loc = $(row).find(".level-col-2 p").last().text().trim()
-          const exp = $(row).find(".level-col-3").text().replace("EXP", "").trim()
+        $(table).find(".level-row").each((__, row) => {
+          const level = $(row).find(".level-col-1 b").text().trim()
+          const name = $(row).find(".level-col-2 b a").text().trim()
+          const loc = $(row).find(".level-col-2 p").eq(1).text().trim()
+          const exp = $(row).find(".level-col-3 p b").first().text().trim()
 
-          if (name) {
+          if (name && exp) {
             result.push({
               category: title,
-              level: parseInt(level) || level,
+              level,
               name,
               location: loc,
-              exp: parseInt(exp.replace(/,/g, "")) || exp
+              exp
             })
           }
         })
@@ -52,6 +51,6 @@ export const lv = async (currentLv) => {
 
   } catch (error) {
     console.error("Error fetching leveling data:", error.message)
-    return []
+    throw error
   }
 }
