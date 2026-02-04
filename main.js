@@ -347,6 +347,7 @@ ${combined.map((item) => {
             await interaction.reply({ content: errorMsg, ephemeral: true });
           }
         }
+        break;
       }
 
       default:
