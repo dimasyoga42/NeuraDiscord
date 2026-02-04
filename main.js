@@ -441,45 +441,51 @@ ${combined.map((item) => {
             content: `Ditemukan ${data.length} hasil pencarian untuk "${namaItem}":`,
             components: [row]
           });
-          app.on(`interactionCreate`, async (interaction) => {
+
+          app.on('interactionCreate', async (interaction) => {
             if (!interaction.isStringSelectMenu()) return;
             if (interaction.customId === 'items_select') {
               try {
-                await interaction.deferUpdate(); // Mengakui interaksi tanpa mengirim pesan baru segera
-
-                // Mengambil nilai pertama dari array values
+                await interaction.deferUpdate();
                 const selectedItemName = interaction.values[0];
 
-                // Melakukan kueri ke database untuk mendapatkan detail item secara spesifik
-                const { data: item, error } = await supabase
+
+                const { data: item, error: itemError } = await supabase
                   .from("item")
                   .select("*")
                   .eq("nama", selectedItemName)
-                  .single(); // Mengambil satu objek tunggal
+                  .single();
 
-                const { data: app, err } = await supabase.from("appview").select("name, image_url").ilike("name", `%${item.nama}%`).single()
 
-                if (error || !item) {
+                if (itemError || !item) {
+                  console.error("Kesalahan kueri item:", itemError);
                   return await interaction.followUp({
-                    content: "Gagal mendapatkan detail item tersebut.",
+                    content: "Gagal mendapatkan detail item dari database.",
                     ephemeral: true
                   });
                 }
 
-                // Menyusun pesan detail, disarankan menggunakan Embed agar terlihat profesional
+
+                const { data: app, error: appError } = await supabase
+                  .from("appview")
+                  .select("name, image_url")
+                  .eq("name", item.nama)
+                  .single();
+
+
                 const detailEmbed = new EmbedBuilder()
                   .setColor(color.yellow)
-                  .setThumbnail(app.image_url)
-                  .setTitle("Search Item")
+                  .setTitle(`Detail Item: ${item.nama}`)
+                  .setThumbnail(app?.image_url || null)
                   .addFields([
-                    { name: "name", value: item.nama },
-                    { name: "tipe", value: item.jenis },
-                    { name: "stat", value: item.stat },
-                    { name: "Drop", value: item.drop }
+                    { name: "Nama", value: item.nama || "-", inline: true },
+                    { name: "Tipe", value: item.jenis || "-", inline: true },
+                    { name: "Statistik", value: item.stat || "Tidak ada statistik" },
+                    { name: "Drop", value: item.drop || "Informasi drop tidak tersedia" }
                   ])
                   .setFooter({ text: "Neura Sama" })
+                  .setTimestamp();
 
-                // Mengirimkan detail tersebut sebagai balasan
                 await interaction.editReply({
                   content: `Berikut adalah rincian untuk **${item.nama}**:`,
                   embeds: [detailEmbed],
@@ -487,10 +493,13 @@ ${combined.map((item) => {
                 });
 
               } catch (err) {
-                console.error("Gagal memproses seleksi item:", err);
+                console.error("Terjadi kesalahan sistem pada penanganan seleksi:", err);
+                if (interaction.deferred || interaction.replied) {
+                  await interaction.followUp({ content: "Terjadi kesalahan internal saat memproses data.", ephemeral: true });
+                }
               }
             }
-          })
+          });
 
         } catch (error) {
           console.error("Error pada command item:", error);
