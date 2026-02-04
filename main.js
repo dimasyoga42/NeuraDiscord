@@ -297,8 +297,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
         const levelingEmbeds = data.slice(0, 5).map(item => {
           return new EmbedBuilder()
             .setColor(color.green)
-            .setTitle(`[${item.category}] ${item.name}`)
-            .setDescription(`**Lokasi:** ${item.loc}\n**EXP:** ${item.exp}`)
+            .setTitle(`[${item.category}] ${item.name} ${item.level}`)
+            .setDescription(`**Lokasi:** ${item.location}\n**EXP:** ${item.exp}`)
             .setAuthor({ name: `Neura Sama` });
         });
 
