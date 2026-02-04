@@ -6,6 +6,8 @@ import {
   SlashCommandBuilder,
   Events,
   EmbedBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } from "discord.js";
 import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
@@ -117,6 +119,15 @@ const commands = [
       option
         .setName("nama")
         .setDescription("Masukkan nama boss yang dicari")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("item")
+    .setDescription("melihat informasi item")
+    .addStringOption(option =>
+      option
+        .setName("itemName")
+        .setDescription("masukan nama item")
         .setRequired(true)
     )
 ].map(command => command.toJSON());
@@ -382,12 +393,58 @@ ${combined.map((item) => {
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
-          const errorMsg = "Terjadi kesalahan teknis saat memproses data Crysta.";
+          const errorMsg = "Terjadi kesalahan teknis saat memproses data.";
           if (interaction.deferred || interaction.replied) {
             await interaction.editReply(errorMsg);
           } else {
             await interaction.reply({ content: errorMsg, ephemeral: true });
           }
+        }
+        break;
+      }
+      case "item": {
+        try {
+          await interaction.deferReply();
+          const namaItem = interaction.options.getString("itemName");
+
+          // Mengambil data dari Supabase
+          const { data, error } = await supabase
+            .from("item")
+            .select("*")
+            .ilike("name", `%${namaItem}%`)
+            .limit(10); // Limitasi penting untuk mencegah error batasan opsi (max 25)
+
+          if (!data || data.length === 0) {
+            return await interaction.editReply("Data item tidak ditemukan.");
+          }
+
+          // Langkah 1: Buat Array Opsi (Options) terlebih dahulu
+          // Kita menggunakan map hanya untuk membuat daftar pilihannya saja
+          const options = data.map((item) => {
+            return new StringSelectMenuOptionBuilder()
+              .setLabel(item.name) // Nama yang muncul di menu
+              .setDescription(item.description || "Item yang tersedia") // Deskripsi opsional
+              .setValue(item.name); // Nilai yang dikirim saat dipilih (pastikan unik)
+          });
+
+          // Langkah 2: Buat Satu Menu Dropdown dan masukkan opsi di atas
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("items_select") // ID unik untuk event listener
+            .setPlaceholder("Pilih item hasil pencarian...")
+            .addOptions(options);
+
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+
+
+          await interaction.editReply({
+            content: `Ditemukan ${data.length} hasil pencarian untuk "${namaItem}":`,
+            components: [row]
+          });
+
+        } catch (error) {
+          console.error("Error pada command item:", error);
+          await interaction.editReply("Terjadi kesalahan saat memproses permintaan.");
         }
         break;
       }
