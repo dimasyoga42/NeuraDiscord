@@ -469,7 +469,7 @@ ${combined.map((item) => {
                 const { data: app, error: appError } = await supabase
                   .from("appview")
                   .select("name, image_url")
-                  .eq("name", item.nama)
+                  .eq("name", selectedItemName)
                   .single();
 
 
