@@ -267,7 +267,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
                 { name: "Tipe", value: item.type || "-", inline: true },
                 { name: "Upgrade", value: item.upgrade || "Bukan Upgrade", inline: true },
                 { name: "Route", value: item.route || "-", inline: false },
-                { name: "Stat", value: `\`\`\`\n${rawStat}\n\`\`\`` }
+                { name: "Stat", value: `${rawStat}` }
               ])
               .setDescription("Hubungi owner jika ada bug data.")
               .setFooter({ text: "Neura Sama" })
