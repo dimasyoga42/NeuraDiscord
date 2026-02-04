@@ -245,8 +245,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
         try {
           await interaction.deferReply()
           const xtalName = interaction.options.getString("name")
-          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`)
-          if (!data || data.length === 0 || error) return await interaction.editReply("data xtal tidak ditemukan");
+          const { data, error } = await supabase.from("xtall").select("name, type, upgrade, route").ilike("name", `%${xtalName}%`)
+          if (!data || data.length === 0) return await interaction.editReply("data xtal tidak ditemukan");
 
           const messageXtal = data.map((item) => {
             return new EmbedBuilder()
