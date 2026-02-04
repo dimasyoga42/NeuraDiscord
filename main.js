@@ -245,7 +245,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         try {
           await interaction.deferReply()
           const xtalName = interaction.options.getString("name")
-          const { data, error } = await supabase.from("xtall").select("name, type, upgrade, route").ilike("name", `%${xtalName}%`)
+          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`).limit(10)
           if (!data || data.length === 0) return await interaction.editReply({ content: "data xtal tidak ditemukan" });
 
           const messageXtal = data.map((item) => {
@@ -266,7 +266,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         } catch (err) {
           console.log(err.message)
           if (interaction.deferred || interaction.replied) {
-            await interaction.editReply("Terjadi kesalahan teknis saat memproses data buff.");
+            await interaction.editReply("Terjadi kesalahan teknis saat memproses data.");
           }
         }
         break;
