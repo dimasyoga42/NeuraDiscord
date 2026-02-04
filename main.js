@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
+import { color } from "./src/config/color.js";
 
 dotenv.config();
 
@@ -126,7 +127,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         }
 
         const embed = new EmbedBuilder()
-          .setColor(0x0099FF)
+          .setColor(color.black)
           .setTitle(`Boss Info: ${bos.name}`)
           .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n\`\`\``)
           .addFields([
@@ -154,7 +155,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const bannertxt = ava.slice(0, 10).map((item) => {
             return new EmbedBuilder()
-              .setColor(0xFFB6C1)
+              .setColor(color.wind)
               .setTitle(item.title || "Untitled Banner")
               .setDescription(`**Tanggal:** ${item.dateStr || "N/A"}`)
               .setImage(item.image)
@@ -193,7 +194,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const buffEmbeds = data.map((item) => {
             return new EmbedBuilder()
-              .setColor(0x0099FF)
+              .setColor(color.blurple)
               .setTitle(item.name || "Unknown Buff")
               .setDescription(`\`\`\`\n${item.code || "No Code"}\n\`\`\``)
               .setTimestamp()
