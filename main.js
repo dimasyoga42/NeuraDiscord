@@ -37,12 +37,12 @@ const commands = [
   new SlashCommandBuilder()
     .setName("buff")
     .setDescription("untuk melihat daftar buffland")
-    .addStringOption(option => {
+    .addStringOption(option =>
       option
         .setName("buffname")
         .setDescription("masukan nama buff")
         .setRequired(true)
-    }),
+    ),
 
   new SlashCommandBuilder()
     .setName("bos")
