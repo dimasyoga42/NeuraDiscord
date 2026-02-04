@@ -324,7 +324,7 @@ ${combined.map((item) => {
         try {
           await interaction.deferReply()
           const nameAbility = interaction.options.getString("name")
-          const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`)
+          const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(10)
           if (!data || data.length === 0 || error) return interaction.editReply("tidak menemukan ability yang di cari")
           const msgTxt = `
           ${data.map((item) => {
@@ -336,7 +336,7 @@ ${combined.map((item) => {
           }).join('\n')}
           `.trim()
 
-          await interaction.editReply({ content: msgTxt.slice(0, 15) });
+          await interaction.editReply({ content: msgTxt });
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
