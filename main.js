@@ -49,7 +49,7 @@ const commands = [
     .setDescription("melihat information xtall")
     .addStringOption(option =>
       option
-        .setName("xtalname")
+        .setName("name")
         .setDescription("masukan nama xtal yang dicari")
         .setRequired(true)
     ),
@@ -244,7 +244,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "xtal": {
         try {
           await interaction.deferReply()
-          const xtalName = interaction.options.getString("yourlevel")
+          const xtalName = interaction.options.getString("name")
           const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`).limit(10)
           if (!data || data.length === 0 || error) return await interaction.editReply("data xtal tidak ditemukan");
 
