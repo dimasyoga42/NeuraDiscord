@@ -180,13 +180,14 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
           const buffMessage = data.map((item) => {
             return new EmbedBuilder()
-              .setColor(0x000)
-              .setTitle(item.name)
-              .setDescription(item.code)
+              .setColor(0x0099FF)
+              .setTitle(item.name || "Unknown Buff")
+              .setDescription(`\`\`\`\n${item.code || "No Code"}\n\`\`\``)
               .setTimestamp()
-              .setFooter({ text: "Neura Sama" })
-          })
-          await interaction.editReply({ embeds: buffMessage })
+              .setFooter({ text: "Neura Sama" });
+          });
+
+          await interaction.editReply({ embeds: buffMessage.slice(0, 10) });
         } catch (error) {
           throw error
           console.log(error.message)
