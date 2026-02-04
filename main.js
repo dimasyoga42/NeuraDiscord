@@ -457,7 +457,7 @@ ${combined.map((item) => {
                   .eq("nama", selectedItemName)
                   .single(); // Mengambil satu objek tunggal
 
-                const { data: app, err } = await supabase.from("appview").select("name, image_url").ilike("name", `%${selectedItemName}%`).single()
+                const { data: app, err } = await supabase.from("appview").select("name, image_url").ilike("name", `%${item.nama}%`).single()
 
                 if (error || !item) {
                   return await interaction.followUp({
