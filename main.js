@@ -269,6 +269,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply("Terjadi kesalahan teknis saat memproses data buff.");
           }
         }
+        break;
       }
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
