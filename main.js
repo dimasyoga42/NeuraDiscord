@@ -245,7 +245,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         try {
           await interaction.deferReply()
           const xtalName = interaction.options.getString("name")
-          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`).limit(10)
+          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`)
           if (!data || data.length === 0 || error) return await interaction.editReply("data xtal tidak ditemukan");
 
           const messageXtal = data.map((item) => {
@@ -256,12 +256,13 @@ app.on(Events.InteractionCreate, async (interaction) => {
                 { name: "type", value: item.type },
                 { name: "upgrade", value: item.upgrade },
                 { name: "route", value: item.route },
+                { name: "stat", value: item.stat }
               ])
-              .setDescription(item.stat)
+              .setDescription("hubungi owner jika ada bug")
               .setFooter({ text: "Neura Sama" })
               .setTimestamp()
           });
-          await interaction.editReply({ embeds: messageXtal })
+          await interaction.editReply({ embeds: messageXtal.slice(0, 10) })
         } catch (err) {
           console.log(err.message)
         }
