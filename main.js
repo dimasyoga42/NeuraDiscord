@@ -329,10 +329,10 @@ ${combined.map((item) => {
           const msgTxt = `
           ${data.map((item) => {
             return `
-            nama: ${item.name}
-            tier: ${item.tier}
-            Stat: ${item.stat_effect}
-            `
+nama: ${item.name}
+tier: ${item.tier}
+Stat: ${item.stat_effect}
+            `.trim()
           }).join('\n')}
           `.trim()
 
