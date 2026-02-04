@@ -121,6 +121,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         const menuNeura = new EmbedBuilder()
           .setColor(0x0099FF)
           .setTitle("Menu Neura Sama")
+          .setThumbnail("https://raw.githubusercontent.com/ZastrixArundell/Toram-sensei/master/images/potum.png")
           .setDescription("Neura hadir tidak hanya di discord melainkan juga ada di web dan whatsapp")
           .addFields([
             { name: "Guide Toram", value: "/perpus - daftar guide", inline: true },
