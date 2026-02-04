@@ -374,23 +374,26 @@ ${combined.map((item) => {
         try {
           await interaction.deferReply()
           const nameAbility = interaction.options.getString("name")
-          const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(5)
+          const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(10)
           if (!data || data.length === 0) return interaction.editReply("tidak menemukan ability yang di cari")
 
-          const msgTxt = data.map((item) => {
-            return new EmbedBuilder()
-              .setColor(color.cyan)
-              .setTitle("Ability search")
-              .addFields([
-                { name: "Nama", value: item.name },
-                { name: "Tier", value: item.tier },
-                { name: "Stat", value: item.stat_effect }
-              ])
-              .setTimestamp()
-              .setFooter({ text: "Neura Sama" })
+          const option = data.map((item) => {
+            return new StringSelectMenuOptionBuilder()
+              .setLabel(item.name)
+              .setDescription("ability yang anda cari")
+              .setValue(item.nme)
           })
 
-          await interaction.editReply({ embeds: msgTxt });
+          const selectmenu = new StringSelectMenuBuilder()
+            .setCustomId("abilityId")
+            .setPlaceholder("pilihan Ability")
+            .addOptions(option)
+
+          const row = new ActionRowBuilder().addComponents(selectmenu)
+          await interaction.editReply({
+            content: "hasil pencarian anda",
+            components: [row]
+          });
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
