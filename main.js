@@ -201,7 +201,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
 
           await interaction.editReply({
-            embeds: buffEmbeds
+            embeds: buffEmbeds.slice(0, 10)
           });
 
         } catch (error) {
