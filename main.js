@@ -28,7 +28,7 @@ const idChannel = "1468532735575589009"
 app.once(Events.ClientReady, (c) => {
   console.log(`bot ${c.user.tag} siap`);
 
-  cron.schedule("0 7 * * *", async () => {
+  cron.schedule("32 16 * * *", async () => {
     try {
       const channel = await app.channels.fetch(idChannel);
       if (!channel) return console.error("channel tidak ditemukan");
