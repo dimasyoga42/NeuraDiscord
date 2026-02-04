@@ -328,15 +328,20 @@ ${combined.map((item) => {
           if (!data || data.length === 0) return interaction.editReply("tidak menemukan ability yang di cari")
           const msgTxt = `
           ${data.map((item) => {
-            return `
-nama: ${item.name}
-tier: ${item.tier}
-Stat: ${item.stat_effect}
-            `.trim()
-          }).join('\n')}
-          `.trim()
+            return new EmbedBuilder()
+              .setColor(color.cyan)
+              .setTitle("Ability search")
+              .addFields([
+                { name: "Nama", value: item.name },
+                { name: "Tier", value: item.tier },
+                { name: "Stat", value: item.stat_effect }
+              ])
+              .setTimestamp()
+              .setFooter({ text: "Neura Sama" })
+          })}
+          `
 
-          await interaction.editReply(msgTxt);
+          await interaction.editReply({ embeds: msgTxt });
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
