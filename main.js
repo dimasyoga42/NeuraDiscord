@@ -182,7 +182,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           await interaction.deferReply();
           const buffname = await interaction.options.getString("buffname")
           if (!buffname) return;
-          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`);
+          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`).limit(1);
 
           if (error || !data || data.length === 0) {
             return await interaction.editReply({
@@ -201,7 +201,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
 
           await interaction.editReply({
-            embeds: buffEmbeds.slice(0, 10)
+            embeds: buffEmbeds
           });
 
         } catch (error) {
