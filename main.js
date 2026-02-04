@@ -341,7 +341,7 @@ ${combined.map((item) => {
           })}
           `
 
-          await interaction.editReply({ embeds: msgTxt });
+          await interaction.editReply({ embeds: [msgTxt] });
         } catch (error) {
           console.log(error.message)
           await interaction.editReply("Gagal mengambil data ability")
