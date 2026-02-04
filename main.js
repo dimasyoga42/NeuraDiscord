@@ -8,6 +8,7 @@ import {
   EmbedBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  ActionRowBuilder,
 } from "discord.js";
 import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
