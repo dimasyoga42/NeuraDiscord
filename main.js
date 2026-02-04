@@ -310,7 +310,7 @@ your level ${userLv}
 ${combined.map((item) => {
             return `[${item.category}] ${item.name} (${item.level}) - ${item.exp} (${item.location})`
           }).join('\n')}
-`.trim()
+`
 
           await interaction.editReply({ content: levelingEmbeds });
 
