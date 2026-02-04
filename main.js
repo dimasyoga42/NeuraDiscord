@@ -431,8 +431,8 @@ ${combined.map((item) => {
                 .setDescription("suport kami jika anda suka dengan bot kami")
                 .addFields([
                   { name: "name", value: ability.name, inline: false },
-                  { name: "tier", value: ability.tier, inline: true },
-                  { name: "stat", value: ability.stat_effect, inline: true }
+                  { name: "tier", value: ability.tier, inline: false },
+                  { name: "stat", value: ability.stat_effect, inline: false }
                 ])
                 .setTimestamp()
                 .setFooter({ text: "Neura Sama" });
