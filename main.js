@@ -171,7 +171,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         }
         break;
       }
-      case buff: {
+      case "buff": {
         try {
           await interaction.deferReply()
           const { data, error } = await supabase.from("buff").select("*");
