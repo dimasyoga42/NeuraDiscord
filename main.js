@@ -173,7 +173,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
       }
       case "buff": {
         try {
-          await interaction.deferReply()
+          await interaction.deferReply();
+
           const { data, error } = await supabase.from("buff").select("*");
 
           if (error || !data || data.length === 0) {
@@ -181,7 +182,9 @@ app.on(Events.InteractionCreate, async (interaction) => {
               content: "Data buff gagal dimuat atau database kosong."
             });
           }
-          const buffMessage = data.map((item) => {
+
+
+          const buffEmbeds = data.map((item) => {
             return new EmbedBuilder()
               .setColor(0x0099FF)
               .setTitle(item.name || "Unknown Buff")
@@ -190,11 +193,18 @@ app.on(Events.InteractionCreate, async (interaction) => {
               .setFooter({ text: "Neura Sama" });
           });
 
-          await interaction.editReply({ embeds: [buffMessage] });
+          await interaction.editReply({
+            embeds: buffEmbeds.slice(0, 10)
+          });
+
         } catch (error) {
-          throw error
-          console.log(error.message)
+          console.error("Error pada perintah buff:", error.message);
+
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply("Terjadi kesalahan teknis saat memproses data buff.");
+          }
         }
+        break;
       }
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
