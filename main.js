@@ -478,7 +478,7 @@ ${combined.map((item) => {
 
                 // Mengirimkan detail tersebut sebagai balasan
                 await interaction.editReply({
-                  content: `Berikut adalah rincian untuk **${item.name}**:`,
+                  content: `Berikut adalah rincian untuk **${item.nama}**:`,
                   embeds: [detailEmbed],
                   components: []
                 });
