@@ -262,7 +262,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
               .setFooter({ text: "Neura Sama" })
               .setTimestamp()
           });
-          await interaction.editReply({ embeds: messageXtal.slice(0, 10) })
+          await interaction.editReply({ embeds: messageXtal })
         } catch (err) {
           console.log(err.message)
           if (interaction.deferred || interaction.replied) {
