@@ -243,30 +243,47 @@ app.on(Events.InteractionCreate, async (interaction) => {
       }
       case "xtal": {
         try {
-          await interaction.deferReply()
-          const xtalName = interaction.options.getString("name")
-          const { data, error } = await supabase.from("xtall").select("*").ilike("name", `%${xtalName}%`).limit(10)
-          if (!data || data.length === 0) return await interaction.editReply({ content: "data xtal tidak ditemukan" });
+          await interaction.deferReply();
+
+          const xtalName = interaction.options.getString("name");
+          const { data, error } = await supabase
+            .from("xtall")
+            .select("name, type, upgrade, route, stat")
+            .ilike("name", `%${xtalName}%`)
+            .limit(10);
+
+          if (error || !data || data.length === 0) {
+            return await interaction.editReply({ content: "Data Crysta tidak ditemukan." });
+          }
 
           const messageXtal = data.map((item) => {
+            let rawStat = item.stat || "Tidak ada data statistik.";
+            if (rawStat.length > 1000) rawStat = rawStat.substring(0, 1000) + "...";
+
             return new EmbedBuilder()
               .setColor(color.gold)
-              .setTitle(item.name)
+              .setTitle(`${item.name}`)
               .addFields([
-                { name: "type", value: item.type },
-                { name: "upgrade", value: item.upgrade },
-                { name: "route", value: item.route },
-                { name: "stat", value: item.stat }
+                { name: "Tipe", value: item.type || "-", inline: true },
+                { name: "Upgrade", value: item.upgrade || "Bukan Upgrade", inline: true },
+                { name: "Route", value: item.route || "-", inline: false },
+                { name: "Stat", value: `\`\`\`\n${rawStat}\n\`\`\`` }
               ])
-              .setDescription("hubungi owner jika ada bug")
+              .setDescription("Hubungi owner jika ada bug data.")
               .setFooter({ text: "Neura Sama" })
-              .setTimestamp()
+              .setTimestamp();
           });
-          await interaction.editReply({ embeds: messageXtal })
+
+          await interaction.editReply({ embeds: messageXtal });
+
         } catch (err) {
-          console.log(err.message)
+          console.error("Error Xtal:", err.message);
+
+          const errorMsg = "Terjadi kesalahan teknis saat memproses data Crysta.";
           if (interaction.deferred || interaction.replied) {
-            await interaction.editReply("Terjadi kesalahan teknis saat memproses data.");
+            await interaction.editReply(errorMsg);
+          } else {
+            await interaction.reply({ content: errorMsg, ephemeral: true });
           }
         }
         break;
