@@ -182,7 +182,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           await interaction.deferReply();
           const buffname = interaction.options.getString("buffname")
           if (!buffname) return;
-          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`).limit(1);
+          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`);
 
           if (error || !data || data.length === 0) {
             return await interaction.editReply({
