@@ -327,7 +327,7 @@ ${combined.map((item) => {
           const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`)
           if (!data || data.length === 0 || error) return interaction.editReply("tidak menemukan ability yang di cari")
           const msgTxt = `
-          ${data.map((item) => {
+          ${data.slice(0, 20).map((item) => {
             return `
             nama: ${item.name}
             tier: ${item.tier}
