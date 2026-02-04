@@ -302,17 +302,17 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const bosses = data.filter(item => item.category === "Boss");
           const miniBosses = data.filter(item => item.category === "Mini Boss");
-          const combined = [...bosses, ...miniBosses];
+          const combined = [...bosses.slice(0, 20), ...miniBosses.slice(0, 10)];
 
           const levelingEmbeds = `
 your level ${userLv}
 *Rekomendasi*
 ${combined.map((item) => {
-            return `[${item.category}] ${item.name} (${item.level}) - ${item.exp} (${item.location})`
+            return `[${item.category}] ${item.name} - ${item.exp} (${item.location})`
           }).join('\n')}
-`
+`.trim()
 
-          await interaction.editReply({ content: levelingEmbeds.trim() });
+          await interaction.editReply({ content: levelingEmbeds });
 
         } catch (error) {
           console.error("Error in lv command:", error);
