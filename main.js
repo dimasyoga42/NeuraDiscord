@@ -402,6 +402,58 @@ ${combined.map((item) => {
             content: "Hasil pencarian ability ditemukan:",
             components: [row]
           });
+          app.on('interactionCreate', async (interaction) => {
+            if (!interaction.isStringSelectMenu() || interaction.customId !== 'abilityId') return;
+
+            try {
+              await interaction.deferUpdate();
+
+              const selectedAbilityName = interaction.values[0];
+
+
+              const { data: ability, error } = await supabase
+                .from("ability")
+                .select("*")
+                .eq("name", selectedAbilityName)
+                .single();
+
+              if (error || !ability) {
+                return await interaction.followUp({
+                  content: "Detail ability tidak ditemukan dalam basis data.",
+                  ephemeral: true
+                });
+              }
+
+
+              const abilityEmbed = new EmbedBuilder()
+                .setColor(color.lavender)
+                .setTitle(`Ability: ${ability.name}`)
+                .setDescription("suport kami jika anda suka dengan bot kami")
+                .addFields([
+                  { name: "name", value: ability.name, inline: false },
+                  { name: "tier", value: ability.tier, inline: true },
+                  { name: "stat", value: ability.stat_effect, inline: true }
+                ])
+                .setTimestamp()
+                .setFooter({ text: "Neura Sama" });
+
+
+              await interaction.editReply({
+                content: `Informasi mendetail untuk kemampuan: **${ability.name}**`,
+                embeds: [abilityEmbed],
+                components: []
+              });
+
+            } catch (err) {
+              console.error("Kegagalan pada penanganan seleksi ability:", err);
+              if (interaction.deferred || interaction.replied) {
+                await interaction.followUp({
+                  content: "Terjadi gangguan saat memuat detail ability.",
+                  ephemeral: true
+                });
+              }
+            }
+          });
         } catch (error) {
           console.error(error);
           await interaction.editReply("Gagal mengambil data ability.");
