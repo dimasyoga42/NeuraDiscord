@@ -3,9 +3,23 @@ import * as cheerio from "cheerio"
 
 export const lv = async (currentLv) => {
   try {
-    const res = await fetch(`https://coryn.club/leveling.php?lv=${encodeURIComponent(currentLv)}&gap=7&bonusEXP=0`)
+    // Validasi input
+    if (!currentLv || isNaN(currentLv)) {
+      throw new Error("Invalid level input")
+    }
 
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const res = await fetch(
+      `https://coryn.club/leveling.php?lv=${encodeURIComponent(currentLv)}&gap=7&bonusEXP=0`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      }
+    )
+
+    if (!res.ok) {
+      throw new Error(`HTTP error ${res.status}`)
+    }
 
     const html = await res.text()
     const $ = cheerio.load(html)
@@ -24,10 +38,10 @@ export const lv = async (currentLv) => {
           if (name) {
             result.push({
               category: title,
-              level,
+              level: parseInt(level) || level,
               name,
-              loc,
-              exp
+              location: loc,
+              exp: parseInt(exp.replace(/,/g, "")) || exp
             })
           }
         })
@@ -35,8 +49,9 @@ export const lv = async (currentLv) => {
     })
 
     return result
+
   } catch (error) {
-    console.log(error.message)
+    console.error("Error fetching leveling data:", error.message)
     return []
   }
 }
