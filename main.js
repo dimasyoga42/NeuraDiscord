@@ -441,6 +441,53 @@ ${combined.map((item) => {
             content: `Ditemukan ${data.length} hasil pencarian untuk "${namaItem}":`,
             components: [row]
           });
+          app.on(`interactionCreate`, async (interaction) => {
+            if (!interaction.isStringSelectMenu()) return;
+            if (interaction.customId === 'items_select') {
+              try {
+                await interaction.deferUpdate(); // Mengakui interaksi tanpa mengirim pesan baru segera
+
+                // Mengambil nilai pertama dari array values
+                const selectedItemName = interaction.values[0];
+
+                // Melakukan kueri ke database untuk mendapatkan detail item secara spesifik
+                const { data: item, error } = await supabase
+                  .from("item")
+                  .select("*")
+                  .eq("nama", selectedItemName)
+                  .single(); // Mengambil satu objek tunggal
+
+                if (error || !item) {
+                  return await interaction.followUp({
+                    content: "Gagal mendapatkan detail item tersebut.",
+                    ephemeral: true
+                  });
+                }
+
+                // Menyusun pesan detail, disarankan menggunakan Embed agar terlihat profesional
+                const detailEmbed = new EmbedBuilder()
+                  .setColor(color.yellow)
+                  .setTitle("Search Item")
+                  .addFields([
+                    { name: "name", value: item.nama },
+                    { name: "tipe", value: item.jenis },
+                    { name: "stat", value: item.stat },
+                    { name: "Drop", value: item.drop }
+                  ])
+                  .setFooter({ text: "Neura Sama" })
+
+                // Mengirimkan detail tersebut sebagai balasan
+                await interaction.editReply({
+                  content: `Berikut adalah rincian untuk **${item.name}**:`,
+                  embeds: [detailEmbed],
+                  components: []
+                });
+
+              } catch (err) {
+                console.error("Gagal memproses seleksi item:", err);
+              }
+            }
+          })
 
         } catch (error) {
           console.error("Error pada command item:", error);
