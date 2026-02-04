@@ -308,11 +308,12 @@ app.on(Events.InteractionCreate, async (interaction) => {
           your level ${userLv}
           *Rekomendasi*
           ${combined.map((item) => {
-            return `
-          [${item.category}] ${item.name} - ${item.exp}\nLocation: ${item.location}
             `
-          })}
+          [${item.category}] ${item.name} - ${item.exp} (${item.location})\n
           `
+
+          })}
+          `.trim()
 
           await interaction.editReply({ content: levelingEmbeds });
 
