@@ -312,7 +312,7 @@ ${combined.map((item) => {
           }).join('\n')}
 `
 
-          await interaction.editReply({ content: levelingEmbeds });
+          await interaction.editReply({ content: levelingEmbeds.trim() });
 
         } catch (error) {
           console.error("Error in lv command:", error);
