@@ -411,7 +411,7 @@ ${combined.map((item) => {
           const { data, error } = await supabase
             .from("item")
             .select("*")
-            .ilike("name", `%${namaItem}%`)
+            .ilike("nama", `%${namaItem}%`)
             .limit(10);
 
           if (!data || data.length === 0) {
@@ -421,9 +421,9 @@ ${combined.map((item) => {
 
           const options = data.map((item) => {
             return new StringSelectMenuOptionBuilder()
-              .setLabel(item.name)
+              .setLabel(item.nama)
               .setDescription(item.description || "Item yang tersedia")
-              .setValue(item.name);
+              .setValue(item.nama);
           });
 
 
