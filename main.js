@@ -327,8 +327,8 @@ ${combined.map((item) => {
           const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(5)
           if (!data || data.length === 0) return interaction.editReply("tidak menemukan ability yang di cari")
 
-          data.map((item) => {
-            const msgTxt = new EmbedBuilder()
+          const msgTxt = data.map((item) => {
+            return new EmbedBuilder()
               .setColor(color.cyan)
               .setTitle("Ability search")
               .addFields([
