@@ -126,7 +126,7 @@ const commands = [
     .setDescription("melihat informasi item")
     .addStringOption(option =>
       option
-        .setName("itemName")
+        .setName("name")
         .setDescription("masukan nama item")
         .setRequired(true)
     )
@@ -405,31 +405,30 @@ ${combined.map((item) => {
       case "item": {
         try {
           await interaction.deferReply();
-          const namaItem = interaction.options.getString("itemName");
+          const namaItem = interaction.options.getString("name");
 
-          // Mengambil data dari Supabase
+
           const { data, error } = await supabase
             .from("item")
             .select("*")
             .ilike("name", `%${namaItem}%`)
-            .limit(10); // Limitasi penting untuk mencegah error batasan opsi (max 25)
+            .limit(10);
 
           if (!data || data.length === 0) {
             return await interaction.editReply("Data item tidak ditemukan.");
           }
 
-          // Langkah 1: Buat Array Opsi (Options) terlebih dahulu
-          // Kita menggunakan map hanya untuk membuat daftar pilihannya saja
+
           const options = data.map((item) => {
             return new StringSelectMenuOptionBuilder()
-              .setLabel(item.name) // Nama yang muncul di menu
-              .setDescription(item.description || "Item yang tersedia") // Deskripsi opsional
-              .setValue(item.name); // Nilai yang dikirim saat dipilih (pastikan unik)
+              .setLabel(item.name)
+              .setDescription(item.description || "Item yang tersedia")
+              .setValue(item.name);
           });
 
-          // Langkah 2: Buat Satu Menu Dropdown dan masukkan opsi di atas
+
           const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId("items_select") // ID unik untuk event listener
+            .setCustomId("items_select")
             .setPlaceholder("Pilih item hasil pencarian...")
             .addOptions(options);
 
