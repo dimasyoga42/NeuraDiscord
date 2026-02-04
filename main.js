@@ -302,10 +302,10 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const bosses = data.filter(item => item.category === "Boss");
           const miniBosses = data.filter(item => item.category === "Mini Boss");
-          const combined = [...bosses.slice(0, 5), ...miniBosses.slice(0, 5)];
-
-          const levelingEmbeds = combined.map(item => {
-            return new EmbedBuilder()
+          const combined = [...bosses.slice(0, 8), ...miniBosses.slice(0, 2)];
+          let levelingEmbeds
+          combined.map(item => {
+            return levelingEmbeds = new EmbedBuilder()
               .setColor(color.green)
               .setTitle(`[${item.category}] ${item.name} ${item.level}`)
               .setDescription(`**Lokasi:** ${item.location}\n**EXP:** ${item.exp}`)
