@@ -174,10 +174,13 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case buff: {
         try {
           await interaction.deferReply()
-          const data = await supabase.from("buff").select("*")
-          if (!data || data.length === 0) return interaction.editReply({
-            content: "data buff gagal di muat"
-          });
+          const { data, error } = await supabase.from("buff").select("*");
+
+          if (error || !data || data.length === 0) {
+            return await interaction.editReply({
+              content: "Data buff gagal dimuat atau database kosong."
+            });
+          }
           const buffMessage = data.map((item) => {
             return new EmbedBuilder()
               .setColor(0x0099FF)
