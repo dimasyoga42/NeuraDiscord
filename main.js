@@ -372,37 +372,39 @@ ${combined.map((item) => {
       }
       case "ability": {
         try {
-          await interaction.deferReply()
-          const nameAbility = interaction.options.getString("name")
-          const { data, error } = await supabase.from("ability").select("*").ilike("name", `%${nameAbility}%`).limit(10)
-          if (!data || data.length === 0) return interaction.editReply("tidak menemukan ability yang di cari")
+          await interaction.deferReply();
+          const nameAbility = interaction.options.getString("name");
+          const { data, error } = await supabase
+            .from("ability")
+            .select("*")
+            .ilike("name", `%${nameAbility}%`)
+            .limit(10);
 
-          const option = data.map((item) => {
+          if (!data || data.length === 0) {
+            return await interaction.editReply("Tidak menemukan ability yang dicari.");
+          }
+
+          const options = data.map((item) => {
             return new StringSelectMenuOptionBuilder()
               .setLabel(item.name)
-              .setDescription("ability yang anda cari")
-              .setValue(item.nme)
-          })
+              .setDescription("Klik untuk melihat detail ability")
+              .setValue(item.name); // Perbaikan dari .nme ke .name
+          });
 
-          const selectmenu = new StringSelectMenuBuilder()
+          const selectMenu = new StringSelectMenuBuilder()
             .setCustomId("abilityId")
-            .setPlaceholder("pilihan Ability")
-            .addOptions(option)
+            .setPlaceholder("Pilih Ability...")
+            .addOptions(options);
 
-          const row = new ActionRowBuilder().addComponents(selectmenu)
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+
           await interaction.editReply({
-            content: "hasil pencarian anda",
+            content: "Hasil pencarian ability ditemukan:",
             components: [row]
           });
         } catch (error) {
-          console.log(error.message)
-          await interaction.editReply("Gagal mengambil data ability")
-          const errorMsg = "Terjadi kesalahan teknis saat memproses data.";
-          if (interaction.deferred || interaction.replied) {
-            await interaction.editReply(errorMsg);
-          } else {
-            await interaction.reply({ content: errorMsg, ephemeral: true });
-          }
+          console.error(error);
+          await interaction.editReply("Gagal mengambil data ability.");
         }
         break;
       }
