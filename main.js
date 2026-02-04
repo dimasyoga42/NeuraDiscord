@@ -180,7 +180,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "buff": {
         try {
           await interaction.deferReply();
-          const buffname = await interaction.options.getString("buffname")
+          const buffname = interaction.options.getString("buffname")
           if (!buffname) return;
           const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`).limit(1);
 
