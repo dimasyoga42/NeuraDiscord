@@ -10,6 +10,7 @@ import {
 import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
 import { color } from "./src/config/color.js";
+import { lv } from "./src/plug/lv.js";
 
 dotenv.config();
 
@@ -67,7 +68,7 @@ const commands = [
     .setDescription("melihat information xtall")
     .addStringOption(option =>
       option
-        .setName("yourlevel")
+        .setName("youlv")
         .setDescription("masukan level anda")
         .setRequired(true)
     ),
@@ -288,9 +289,27 @@ app.on(Events.InteractionCreate, async (interaction) => {
         }
         break;
       }
+      case "lv": {
+        await interaction.deferReply();
+        const userLv = interaction.options.getString("youlv");
+        const data = await lv(userLv);
+        if (data.length === 0) return interaction.editReply("Tidak ada saran leveling ditemukan.");
+        const levelingEmbeds = data.slice(0, 5).map(item => {
+          return new EmbedBuilder()
+            .setColor(color.green)
+            .setTitle(`[${item.category}] ${item.name}`)
+            .setDescription(`📍 **Lokasi:** ${item.loc}\n📈 **EXP:** ${item.exp}`)
+            .setAuthor({ name: `Target Level: ${item.level}` });
+        });
+
+        await interaction.editReply({ embeds: levelingEmbeds });
+        break;
+      }
+
       default:
         await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
     }
+
   } catch (error) {
     console.error(`Error pada perintah ${commandName}:`, error);
     if (interaction.replied || interaction.deferred) {
