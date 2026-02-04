@@ -305,15 +305,12 @@ app.on(Events.InteractionCreate, async (interaction) => {
           const combined = [...bosses, ...miniBosses];
 
           const levelingEmbeds = `
-          your level ${userLv}
-          *Rekomendasi*
-          ${combined.map((item) => {
-            return `
-          [${item.category}] ${item.name} - ${item.exp} (${item.location})\n
-          `
-
-          })}
-          `.trim()
+your level ${userLv}
+*Rekomendasi*
+${combined.map((item) => {
+            return `[${item.category}] ${item.name} - ${item.exp} (${item.location})`
+          }).join('\n')}
+`.trim()
 
           await interaction.editReply({ content: levelingEmbeds });
 
