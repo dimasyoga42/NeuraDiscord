@@ -36,7 +36,13 @@ const commands = [
     .setDescription("Lihat semua menu Neura Sama"),
   new SlashCommandBuilder()
     .setName("buff")
-    .setDescription("untuk melihat daftar buffland"),
+    .setDescription("untuk melihat daftar buffland")
+    .addStringOption(option => {
+      option
+        .setName("buffname")
+        .setDescription("masukan nama buff")
+        .setRequired(true)
+    }),
 
   new SlashCommandBuilder()
     .setName("bos")
@@ -174,8 +180,9 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "buff": {
         try {
           await interaction.deferReply();
-
-          const { data, error } = await supabase.from("buff").select("*");
+          const buffname = await interaction.options.getString("buffname")
+          if (!buffname) return;
+          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`);
 
           if (error || !data || data.length === 0) {
             return await interaction.editReply({
