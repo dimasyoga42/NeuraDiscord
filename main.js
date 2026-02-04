@@ -465,18 +465,9 @@ ${combined.map((item) => {
                   });
                 }
 
-
-                const { data: app, error: appError } = await supabase
-                  .from("appview")
-                  .select("name, image_url")
-                  .eq("name", selectedItemName)
-                  .single();
-
-
                 const detailEmbed = new EmbedBuilder()
                   .setColor(color.yellow)
                   .setTitle(`Detail Item: ${item.nama}`)
-                  .setThumbnail(app?.image_url || null)
                   .addFields([
                     { name: "Nama", value: item.nama || "-", inline: true },
                     { name: "Tipe", value: item.jenis || "-", inline: true },
