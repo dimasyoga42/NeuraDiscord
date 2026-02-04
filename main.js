@@ -11,7 +11,7 @@ import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
 import { color } from "./src/config/color.js";
 import { lv } from "./src/plug/lv.js";
-
+import cron from "node-cron"
 dotenv.config();
 
 // 1. Validasi Environment Variable
@@ -23,6 +23,43 @@ if (!process.env.TOKEN || !process.env.CLIENT_ID) {
 const app = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
+const idChannel = "1468532735575589009"
+//broadcast
+app.once(Events.ClientReady, (c) => {
+  console.log(`bot ${c.user.tag} siap`);
+
+  cron.schedule("0 7 * * *", async () => {
+    try {
+      const channel = await app.channels.fetch(idChannel);
+      if (!channel) return console.error("channel tidak ditemukan");
+      const response = await fetch(process.env.BANNER);
+      const res = await response.json();
+      const ava = res.data;
+
+      if (!ava || ava.length === 0) {
+        return await interaction.editReply("Banner tidak berhasil dimuat atau data kosong.");
+      }
+
+      const bannertxt = ava.slice(0, 10).map((item) => {
+        return new EmbedBuilder()
+          .setColor(color.wind)
+          .setTitle(item.title || "Untitled Banner")
+          .setDescription(`**Tanggal:** ${item.dateStr || "N/A"}`)
+          .setImage(item.image)
+          .setTimestamp()
+          .setFooter({ text: "Neura Sama Update Banner" });
+      });
+
+      await channel.send({
+        embeds: bannertxt
+      })
+      console.log("broadcast berhasil di kirim")
+
+    } catch (error) {
+
+    }
+  })
+})
 
 // 2. Definisi Commands
 const commands = [
