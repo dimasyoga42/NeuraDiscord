@@ -308,7 +308,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
 your level ${userLv}
 *Rekomendasi*
 ${combined.map((item) => {
-            return `[${item.category}] ${item.name} - ${item.exp} (${item.location})`
+            return `[${item.category}] ${item.name} (${item.level}) - ${item.exp} (${item.location})`
           }).join('\n')}
 `.trim()
 
