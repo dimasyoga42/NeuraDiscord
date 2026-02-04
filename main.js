@@ -68,7 +68,7 @@ const commands = [
     .setDescription("melihat information xtall")
     .addStringOption(option =>
       option
-        .setName("youlv")
+        .setName("level")
         .setDescription("masukan level anda")
         .setRequired(true)
     ),
@@ -291,7 +291,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
       }
       case "lv": {
         await interaction.deferReply();
-        const userLv = interaction.options.getString("youlv");
+        const userLv = interaction.options.getString("level");
         const data = await lv(userLv);
         if (data.length === 0) return interaction.editReply("Tidak ada saran leveling ditemukan.");
         const levelingEmbeds = data.slice(0, 5).map(item => {
