@@ -457,6 +457,8 @@ ${combined.map((item) => {
                   .eq("nama", selectedItemName)
                   .single(); // Mengambil satu objek tunggal
 
+                const { data: app, err } = await supabase.from("appview").select("name, image_url").ilike("name", `%${selectedItemName}%`).single()
+
                 if (error || !item) {
                   return await interaction.followUp({
                     content: "Gagal mendapatkan detail item tersebut.",
@@ -467,6 +469,7 @@ ${combined.map((item) => {
                 // Menyusun pesan detail, disarankan menggunakan Embed agar terlihat profesional
                 const detailEmbed = new EmbedBuilder()
                   .setColor(color.yellow)
+                  .setThumbnail(app.image_url)
                   .setTitle("Search Item")
                   .addFields([
                     { name: "name", value: item.nama },
