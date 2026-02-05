@@ -207,7 +207,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         const embed = new EmbedBuilder()
           .setColor(color.black)
           .setTitle(`Boss Info: ${bos.name}`)
-          .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n\`\`\``)
+          .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n source: phantom library\n\`\`\``)
           .addFields([
             { name: 'Lokasi', value: bos.spawn || '-', inline: true },
             { name: 'Elemen', value: bos.element || '-', inline: true }
