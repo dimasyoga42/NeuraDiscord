@@ -207,14 +207,14 @@ app.on(Events.InteractionCreate, async (interaction) => {
         const embed = new EmbedBuilder()
           .setColor(color.black)
           .setTitle(`Boss Info: ${bos.name}`)
-          .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n source: phantom library\n\`\`\``)
+          .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n\`\`\``)
           .addFields([
             { name: 'Lokasi', value: bos.spawn || '-', inline: true },
             { name: 'Elemen', value: bos.element || '-', inline: true }
           ])
           .setImage(bos.image_url || null)
           .setTimestamp()
-          .setFooter({ text: "Neura Sama Database" });
+          .setFooter({ text: "source: phantom library" });
 
         await interaction.editReply({ embeds: [embed] });
         break;
