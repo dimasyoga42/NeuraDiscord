@@ -164,7 +164,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "neura":
         await interaction.reply("Neura Sama di sini! Gunakan `/bantuan`.");
         break;
-
+      //menu
       case "bantuan":
         await interaction.deferReply();
         const menuNeura = new EmbedBuilder()
@@ -173,8 +173,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
           .setThumbnail("https://raw.githubusercontent.com/ZastrixArundell/Toram-sensei/master/images/potum.png")
           .setDescription("Neura hadir tidak hanya di discord melainkan juga ada di web dan whatsapp")
           .addFields([
-            { name: "Guide Toram", value: "/perpus - daftar guide", inline: true },
-            { name: "Toram Tools", value: "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia\n/xtal - melihat detail xtal\n/regis - melihat detail regis\n/ability - melihat detail ability", inline: true }
+            { name: "Guide Toram", value: "/perpus - daftar guide", inline: false },
+            { name: "Toram Tools", value: "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia\n/xtal - melihat detail xtal\n/regis - melihat detail regis\n/ability - melihat detail ability", inline: false }
           ])
           .setTimestamp()
           .setFooter({ text: "Neura Sama" })
