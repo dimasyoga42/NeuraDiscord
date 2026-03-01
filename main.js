@@ -538,51 +538,41 @@ ${combined
             components: [row],
           });
 
-          // Tunggu interaksi dari user yang sama, timeout 60 detik
-          try {
-            const selectInteraction = await reply.awaitMessageComponent({
-              filter: (i) => i.user.id === interaction.user.id,
-              time: 100_000,
-            });
+          const selectInteraction = await reply.awaitMessageComponent({
+            filter: (i) => i.user.id === interaction.user.id,
+          });
 
-            await selectInteraction.deferUpdate();
+          await selectInteraction.deferUpdate();
 
-            const selectedName = selectInteraction.values[0];
+          const selectedName = selectInteraction.values[0];
 
-            const { data: appviws, error: detailError } = await supabase
-              .from("appview")
-              .select("*")
-              .eq("name", selectedName)
-              .single();
+          const { data: appviws, error: detailError } = await supabase
+            .from("appview")
+            .select("*")
+            .eq("name", selectedName)
+            .single();
 
-            if (detailError || !appviws) {
-              return await interaction.editReply({
-                content: "App tidak ditemukan dalam basis data.",
-                components: [],
-              });
-            }
-
-            const appEmbed = new EmbedBuilder()
-              .setColor(color.lavender)
-              .setTitle(`appview: ${appviws.name}`)
-              .setDescription("Suport kami jika anda suka dengan bot kami")
-              .addFields([{ name: "Name", value: appviws.name, inline: false }])
-              .setImage(appviws.image_url)
-              .setTimestamp()
-              .setFooter({ text: "Neura Sama" });
-
-            await interaction.editReply({
-              content: `Informasi mendetail untuk app: **${appviws.name}**`,
-              embeds: [appEmbed],
-              components: [],
-            });
-          } catch {
-            // Timeout — disable select menu
-            await interaction.editReply({
-              content: "Waktu pemilihan habis. Silakan jalankan command lagi.",
+          if (detailError || !appviws) {
+            return await interaction.editReply({
+              content: "App tidak ditemukan dalam basis data.",
               components: [],
             });
           }
+
+          const appEmbed = new EmbedBuilder()
+            .setColor(color.lavender)
+            .setTitle(`appview: ${appviws.name}`)
+            .setDescription("Suport kami jika anda suka dengan bot kami")
+            .addFields([{ name: "Name", value: appviws.name, inline: false }])
+            .setImage(appviws.image_url)
+            .setTimestamp()
+            .setFooter({ text: "Neura Sama" });
+
+          await interaction.editReply({
+            content: `Informasi mendetail untuk app: **${appviws.name}**`,
+            embeds: [appEmbed],
+            components: [],
+          });
         } catch (error) {
           console.error(error);
           if (interaction.deferred || interaction.replied) {
