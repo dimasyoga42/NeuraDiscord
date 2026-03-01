@@ -548,8 +548,9 @@ ${combined
 
           const { data: appviws, error: detailError } = await supabase
             .from("appview")
-            .select("*")
-            .eq("name", selectedName)
+            .select("name, image_url")
+            .ilike("name", `%${selectedName}%`)
+            .limit(1)
             .single();
 
           if (detailError || !appviws) {
