@@ -566,7 +566,7 @@ ${combined
                 .setTitle(`appview: ${appviws.name}`)
                 .setDescription("suport kami jika anda suka dengan bot kami")
                 .addFields([
-                  { name: "name", value: ability.name, inline: false },
+                  { name: "name", value: appviws.name, inline: false },
                 ])
                 .setImage(appviws.image_url)
                 .setTimestamp()
