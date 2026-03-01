@@ -504,13 +504,20 @@ ${combined
       }
       case "appview": {
         try {
-          await interaction.deferReply();
-          const nameAbility = interaction.options.getString("name");
+          await interaction.deferReply({ ephemeral: false });
+
+          const nameApp = interaction.options.getString("name", true).trim();
+
           const { data, error } = await supabase
             .from("appview")
-            .select("*")
-            .ilike("name", `%${nameAbility}%`)
+            .select("name, image_url")
+            .ilike("name", `%${nameApp.replace(/%/g, "")}%`)
             .limit(10);
+
+          if (error) {
+            console.error(error);
+            return await interaction.editReply("Gagal mengambil data app.");
+          }
 
           if (!data || data.length === 0) {
             return await interaction.editReply(
@@ -518,79 +525,93 @@ ${combined
             );
           }
 
+          const customId = `appview_${interaction.user.id}_${Date.now()}`;
+
           const options = data.map((item) => {
             return new StringSelectMenuOptionBuilder()
-              .setLabel(item.name)
+              .setLabel(item.name.slice(0, 100))
               .setDescription("Klik untuk melihat detail app")
-              .setValue(item.name); // Perbaikan dari .nme ke .name
+              .setValue(item.name);
           });
 
           const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId("appview")
+            .setCustomId(customId)
             .setPlaceholder("Pilih App...")
             .addOptions(options);
 
           const row = new ActionRowBuilder().addComponents(selectMenu);
 
-          await interaction.editReply({
+          const message = await interaction.editReply({
             content: "Hasil pencarian app ditemukan:",
             components: [row],
           });
-          app.on("interactionCreate", async (interaction) => {
-            if (
-              !interaction.isStringSelectMenu() ||
-              interaction.customId !== "appview"
-            )
-              return;
 
+          const collector = message.createMessageComponentCollector({
+            filter: (i) =>
+              i.user.id === interaction.user.id && i.customId === customId,
+            time: 60000,
+            max: 1,
+          });
+
+          collector.on("collect", async (i) => {
             try {
-              await interaction.deferUpdate();
+              await i.deferUpdate();
 
-              const selectedappview = interaction.values[0];
+              const selectedApp = i.values[0];
 
-              const { data: appviws, error } = await supabase
+              const { data: appData, error: detailError } = await supabase
                 .from("appview")
                 .select("*")
-                .eq("name", selectedappview)
+                .eq("name", selectedApp)
                 .single();
 
-              if (error || !appviws) {
-                return await interaction.followUp({
-                  content: "app tidak ditemukan dalam basis data.",
+              if (detailError || !appData) {
+                return await i.followUp({
+                  content: "App tidak ditemukan dalam basis data.",
                   ephemeral: true,
                 });
               }
 
               const appEmbed = new EmbedBuilder()
                 .setColor(color.lavender)
-                .setTitle(`appview: ${appviws.name}`)
-                .setDescription("suport kami jika anda suka dengan bot kami")
+                .setTitle(`Appview: ${appData.name}`)
+                .setDescription("Support kami jika anda suka dengan bot kami")
                 .addFields([
-                  { name: "name", value: appviws.name, inline: false },
+                  { name: "Name", value: appData.name, inline: false },
                 ])
-                .setImage(appviws.image_url)
+                .setImage(appData.image_url || null)
                 .setTimestamp()
                 .setFooter({ text: "Neura Sama" });
 
-              await interaction.editReply({
-                content: `Informasi mendetail untuk kemampuan: **${appviws.name}**`,
+              await i.editReply({
+                content: `Informasi mendetail untuk app: **${appData.name}**`,
                 embeds: [appEmbed],
                 components: [],
               });
             } catch (err) {
               console.error("Kegagalan pada penanganan seleksi app:", err);
-              if (interaction.deferred || interaction.replied) {
-                await interaction.followUp({
-                  content: "Terjadi gangguan saat memuat detail app.",
-                  ephemeral: true,
-                });
-              }
+              await i.followUp({
+                content: "Terjadi gangguan saat memuat detail app.",
+                ephemeral: true,
+              });
+            }
+          });
+
+          collector.on("end", async (_, reason) => {
+            if (reason === "time") {
+              await interaction.editReply({
+                content: "Waktu pemilihan habis.",
+                components: [],
+              });
             }
           });
         } catch (error) {
           console.error(error);
-          await interaction.editReply("Gagal mengambil data ability.");
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply("Gagal mengambil data app.");
+          }
         }
+
         break;
       }
       case "item": {
