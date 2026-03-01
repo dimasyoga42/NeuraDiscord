@@ -564,8 +564,10 @@ ${combined
             .setColor(color.lavender)
             .setTitle(`appview: ${appviws.name}`)
             .setDescription("Suport kami jika anda suka dengan bot kami")
-            .addFields([{ name: "Name", value: appviws.name, inline: false }])
-            .setImage(appviws.image_url)
+            .addFields([
+              { name: "Name", value: appviws.name, inline: false },
+              { name: "url", value: appviws.image_url },
+            ])
             .setTimestamp()
             .setFooter({ text: "Neura Sama" });
 
