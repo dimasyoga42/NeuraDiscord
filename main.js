@@ -566,8 +566,9 @@ ${combined
             .setDescription("Suport kami jika anda suka dengan bot kami")
             .addFields([
               { name: "Name", value: appviws.name, inline: false },
-              { name: "url", value: appviws.image_url },
+              { name: "url", value: encodeURI(appviws.image_url) },
             ])
+            .setImage(encodeURI(appviws.image_url))
             .setTimestamp()
             .setFooter({ text: "Neura Sama" });
 
