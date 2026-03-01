@@ -14,7 +14,7 @@ import dotenv from "dotenv";
 import { supabase } from "./src/db/supabase.js";
 import { color } from "./src/config/color.js";
 import { lv } from "./src/plug/lv.js";
-import cron from "node-cron"
+import cron from "node-cron";
 dotenv.config();
 
 // 1. Validasi Environment Variable
@@ -24,14 +24,14 @@ if (!process.env.TOKEN || !process.env.CLIENT_ID) {
 }
 
 const app = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds],
 });
-const idChannel = "1468532735575589009"
+const idChannel = "1468532735575589009";
 //broadcast
 app.once(Events.ClientReady, (c) => {
   console.log(`bot ${c.user.tag} siap`);
 
-  cron.schedule("32 16 * * *", async () => {
+  cron.schedule("32 23 * * *", async () => {
     try {
       const channel = await app.channels.fetch(idChannel);
       if (!channel) return console.error("channel tidak ditemukan");
@@ -40,7 +40,9 @@ app.once(Events.ClientReady, (c) => {
       const ava = res.data;
 
       if (!ava || ava.length === 0) {
-        return await interaction.editReply("Banner tidak berhasil dimuat atau data kosong.");
+        return await interaction.editReply(
+          "Banner tidak berhasil dimuat atau data kosong.",
+        );
       }
 
       const bannertxt = ava.slice(0, 10).map((item) => {
@@ -54,15 +56,12 @@ app.once(Events.ClientReady, (c) => {
       });
 
       await channel.send({
-        embeds: bannertxt
-      })
-      console.log("broadcast berhasil di kirim")
-
-    } catch (error) {
-
-    }
-  })
-})
+        embeds: bannertxt,
+      });
+      console.log("broadcast berhasil di kirim");
+    } catch (error) {}
+  });
+});
 
 // 2. Definisi Commands
 const commands = [
@@ -79,69 +78,77 @@ const commands = [
   new SlashCommandBuilder()
     .setName("buff")
     .setDescription("untuk melihat daftar buffland")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("buffname")
         .setDescription("masukan nama buff")
-        .setRequired(true)
+        .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("xtal")
     .setDescription("melihat information xtall")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("name")
         .setDescription("masukan nama xtal yang dicari")
-        .setRequired(true)
+        .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("ability")
     .setDescription("melihat information ability")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("name")
         .setDescription("masukan nama ability yang dicari")
-        .setRequired(true)
+        .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("lv")
     .setDescription("melihat information xtall")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("level")
         .setDescription("masukan level anda")
-        .setRequired(true)
+        .setRequired(true),
     ),
 
   new SlashCommandBuilder()
     .setName("bos")
     .setDescription("Cari informasi Boss")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("nama")
         .setDescription("Masukkan nama boss yang dicari")
-        .setRequired(true)
+        .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("item")
     .setDescription("melihat informasi item")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("name")
         .setDescription("masukan nama item")
-        .setRequired(true)
-    )
-].map(command => command.toJSON());
+        .setRequired(true),
+    ),
+  new SlashCommandBuilder()
+    .setName("appview")
+    .setDescription("melihat tampilan app")
+    .addStringOption((option) =>
+      option
+        .setName("name")
+        .setDescription("masukan nama app yang dicari")
+        .setRequired(true),
+    ),
+].map((command) => command.toJSON());
 
 // 3. Fungsi Deploy
 async function deployCommands() {
   const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
   try {
     console.log("Memperbarui slash commands...");
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commands }
-    );
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+      body: commands,
+    });
     console.log("Slash commands berhasil diperbarui.");
   } catch (error) {
     console.error("Gagal sinkronisasi API Discord:", error);
@@ -168,18 +175,31 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "bantuan":
         await interaction.deferReply();
         const menuNeura = new EmbedBuilder()
-          .setColor(0x0099FF)
+          .setColor(0x0099ff)
           .setTitle("Menu Neura Sama")
-          .setThumbnail("https://raw.githubusercontent.com/ZastrixArundell/Toram-sensei/master/images/potum.png")
-          .setDescription("Neura hadir tidak hanya di discord melainkan juga ada di web dan whatsapp")
+          .setThumbnail(
+            "https://raw.githubusercontent.com/ZastrixArundell/Toram-sensei/master/images/potum.png",
+          )
+          .setDescription(
+            "Neura hadir tidak hanya di discord melainkan juga ada di web dan whatsapp",
+          )
           .addFields([
-            { name: "Guide Toram", value: "/perpus - daftar guide", inline: false },
-            { name: "Toram Tools", value: "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia\n/xtal - melihat detail xtal\n/regis - melihat detail regis\n/ability - melihat detail ability", inline: false }
+            {
+              name: "Guide Toram",
+              value: "/perpus - daftar guide",
+              inline: false,
+            },
+            {
+              name: "Toram Tools",
+              value:
+                "/bos - melihat statistik bos\n/buff - melihat daftar buffland yang tersedia\n/xtal - melihat detail xtal\n/regis - melihat detail regis\n/ability - melihat detail ability",
+              inline: false,
+            },
           ])
           .setTimestamp()
-          .setFooter({ text: "Neura Sama" })
+          .setFooter({ text: "Neura Sama" });
 
-        await interaction.editReply({ embeds: [menuNeura] })
+        await interaction.editReply({ embeds: [menuNeura] });
         break;
 
       case "bos": {
@@ -192,16 +212,17 @@ app.on(Events.InteractionCreate, async (interaction) => {
           .limit(1);
 
         if (error || !data || data.length === 0) {
-          return await interaction.editReply(`Boss **"${namaBos}"** tidak ditemukan.`);
+          return await interaction.editReply(
+            `Boss **"${namaBos}"** tidak ditemukan.`,
+          );
         }
         const bos = data[0];
 
-
-        let fullStat = bos.stat || 'No Data';
-
+        let fullStat = bos.stat || "No Data";
 
         if (fullStat.length > 4000) {
-          fullStat = fullStat.substring(0, 4000) + "... (karakter maksimal tercapai)";
+          fullStat =
+            fullStat.substring(0, 4000) + "... (karakter maksimal tercapai)";
         }
 
         const embed = new EmbedBuilder()
@@ -209,8 +230,8 @@ app.on(Events.InteractionCreate, async (interaction) => {
           .setTitle(`Boss Info: ${bos.name}`)
           .setDescription(`**Statistik Lengkap:**\n\`\`\`\n${fullStat}\n\`\`\``)
           .addFields([
-            { name: 'Lokasi', value: bos.spawn || '-', inline: true },
-            { name: 'Elemen', value: bos.element || '-', inline: true }
+            { name: "Lokasi", value: bos.spawn || "-", inline: true },
+            { name: "Elemen", value: bos.element || "-", inline: true },
           ])
           .setImage(bos.image_url || null)
           .setTimestamp()
@@ -228,7 +249,9 @@ app.on(Events.InteractionCreate, async (interaction) => {
           const ava = res.data;
 
           if (!ava || ava.length === 0) {
-            return await interaction.editReply("Banner tidak berhasil dimuat atau data kosong.");
+            return await interaction.editReply(
+              "Banner tidak berhasil dimuat atau data kosong.",
+            );
           }
 
           const bannertxt = ava.slice(0, 10).map((item) => {
@@ -242,16 +265,20 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
 
           await interaction.editReply({
-            embeds: bannertxt
+            embeds: bannertxt,
           });
-
         } catch (error) {
           console.error("Error pada perintah banner:", error);
           if (interaction.deferred || interaction.replied) {
-            await interaction.editReply("Terjadi kesalahan teknis saat mengambil data banner.");
+            await interaction.editReply(
+              "Terjadi kesalahan teknis saat mengambil data banner.",
+            );
           } else {
             // Ini hanya jika deferReply gagal dijalankan di awal
-            await interaction.reply({ content: "Gagal memproses perintah.", ephemeral: true });
+            await interaction.reply({
+              content: "Gagal memproses perintah.",
+              ephemeral: true,
+            });
           }
         }
         break;
@@ -259,16 +286,18 @@ app.on(Events.InteractionCreate, async (interaction) => {
       case "buff": {
         try {
           await interaction.deferReply();
-          const buffname = interaction.options.getString("buffname")
+          const buffname = interaction.options.getString("buffname");
           if (!buffname) return;
-          const { data, error } = await supabase.from("buff").select("*").ilike("name", `%${buffname}%`);
+          const { data, error } = await supabase
+            .from("buff")
+            .select("*")
+            .ilike("name", `%${buffname}%`);
 
           if (error || !data || data.length === 0) {
             return await interaction.editReply({
-              content: "Data buff gagal dimuat atau database kosong."
+              content: "Data buff gagal dimuat atau database kosong.",
             });
           }
-
 
           const buffEmbeds = data.map((item) => {
             return new EmbedBuilder()
@@ -280,14 +309,15 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
 
           await interaction.editReply({
-            embeds: buffEmbeds.slice(0, 10)
+            embeds: buffEmbeds.slice(0, 10),
           });
-
         } catch (error) {
           console.error("Error pada perintah buff:", error.message);
 
           if (interaction.deferred || interaction.replied) {
-            await interaction.editReply("Terjadi kesalahan teknis saat memproses data buff.");
+            await interaction.editReply(
+              "Terjadi kesalahan teknis saat memproses data buff.",
+            );
           }
         }
         break;
@@ -304,21 +334,28 @@ app.on(Events.InteractionCreate, async (interaction) => {
             .limit(10);
 
           if (error || !data || data.length === 0) {
-            return await interaction.editReply({ content: "Data Crysta tidak ditemukan." });
+            return await interaction.editReply({
+              content: "Data Crysta tidak ditemukan.",
+            });
           }
 
           const messageXtal = data.map((item) => {
             let rawStat = item.stat || "Tidak ada data statistik.";
-            if (rawStat.length > 1000) rawStat = rawStat.substring(0, 1000) + "...";
+            if (rawStat.length > 1000)
+              rawStat = rawStat.substring(0, 1000) + "...";
 
             return new EmbedBuilder()
               .setColor(color.gold)
               .setTitle(`${item.name}`)
               .addFields([
                 { name: "Tipe", value: item.type || "-", inline: true },
-                { name: "Upgrade", value: item.upgrade || "Bukan Upgrade", inline: true },
+                {
+                  name: "Upgrade",
+                  value: item.upgrade || "Bukan Upgrade",
+                  inline: true,
+                },
                 { name: "Route", value: item.route || "-", inline: false },
-                { name: "Stat", value: `${rawStat}` }
+                { name: "Stat", value: `${rawStat}` },
               ])
               .setDescription("Hubungi owner jika ada bug data.")
               .setFooter({ text: "Neura Sama" })
@@ -326,11 +363,11 @@ app.on(Events.InteractionCreate, async (interaction) => {
           });
 
           await interaction.editReply({ embeds: messageXtal });
-
         } catch (err) {
           console.error("Error Xtal:", err.message);
 
-          const errorMsg = "Terjadi kesalahan teknis saat memproses data Crysta.";
+          const errorMsg =
+            "Terjadi kesalahan teknis saat memproses data Crysta.";
           if (interaction.deferred || interaction.replied) {
             await interaction.editReply(errorMsg);
           } else {
@@ -350,20 +387,23 @@ app.on(Events.InteractionCreate, async (interaction) => {
             return interaction.editReply("Tidak ada saran leveling ditemukan.");
           }
 
-          const bosses = data.filter(item => item.category === "Boss");
-          const miniBosses = data.filter(item => item.category === "Mini Boss");
+          const bosses = data.filter((item) => item.category === "Boss");
+          const miniBosses = data.filter(
+            (item) => item.category === "Mini Boss",
+          );
           const combined = [...bosses.slice(0, 20), ...miniBosses.slice(0, 10)];
 
           const levelingEmbeds = `
 your level ${userLv}
 *Rekomendasi*
-${combined.map((item) => {
-            return `[${item.category}] ${item.name} - ${item.exp} (${item.location})`
-          }).join('\n')}
-`.trim()
+${combined
+  .map((item) => {
+    return `[${item.category}] ${item.name} - ${item.exp} (${item.location})`;
+  })
+  .join("\n")}
+`.trim();
 
           await interaction.editReply({ content: levelingEmbeds });
-
         } catch (error) {
           console.error("Error in lv command:", error);
           await interaction.editReply("Gagal mengambil data leveling");
@@ -381,7 +421,9 @@ ${combined.map((item) => {
             .limit(10);
 
           if (!data || data.length === 0) {
-            return await interaction.editReply("Tidak menemukan ability yang dicari.");
+            return await interaction.editReply(
+              "Tidak menemukan ability yang dicari.",
+            );
           }
 
           const options = data.map((item) => {
@@ -400,16 +442,19 @@ ${combined.map((item) => {
 
           await interaction.editReply({
             content: "Hasil pencarian ability ditemukan:",
-            components: [row]
+            components: [row],
           });
-          app.on('interactionCreate', async (interaction) => {
-            if (!interaction.isStringSelectMenu() || interaction.customId !== 'abilityId') return;
+          app.on("interactionCreate", async (interaction) => {
+            if (
+              !interaction.isStringSelectMenu() ||
+              interaction.customId !== "abilityId"
+            )
+              return;
 
             try {
               await interaction.deferUpdate();
 
               const selectedAbilityName = interaction.values[0];
-
 
               const { data: ability, error } = await supabase
                 .from("ability")
@@ -420,10 +465,9 @@ ${combined.map((item) => {
               if (error || !ability) {
                 return await interaction.followUp({
                   content: "Detail ability tidak ditemukan dalam basis data.",
-                  ephemeral: true
+                  ephemeral: true,
                 });
               }
-
 
               const abilityEmbed = new EmbedBuilder()
                 .setColor(color.lavender)
@@ -432,24 +476,113 @@ ${combined.map((item) => {
                 .addFields([
                   { name: "name", value: ability.name, inline: false },
                   { name: "tier", value: ability.tier, inline: false },
-                  { name: "stat", value: ability.stat_effect, inline: false }
+                  { name: "stat", value: ability.stat_effect, inline: false },
                 ])
                 .setTimestamp()
                 .setFooter({ text: "Neura Sama" });
 
-
               await interaction.editReply({
                 content: `Informasi mendetail untuk kemampuan: **${ability.name}**`,
                 embeds: [abilityEmbed],
-                components: []
+                components: [],
               });
-
             } catch (err) {
               console.error("Kegagalan pada penanganan seleksi ability:", err);
               if (interaction.deferred || interaction.replied) {
                 await interaction.followUp({
                   content: "Terjadi gangguan saat memuat detail ability.",
-                  ephemeral: true
+                  ephemeral: true,
+                });
+              }
+            }
+          });
+        } catch (error) {
+          console.error(error);
+          await interaction.editReply("Gagal mengambil data ability.");
+        }
+        break;
+      }
+      case "appview": {
+        try {
+          await interaction.deferReply();
+          const nameAbility = interaction.options.getString("name");
+          const { data, error } = await supabase
+            .from("appview")
+            .select("*")
+            .ilike("name", `%${nameAbility}%`)
+            .limit(10);
+
+          if (!data || data.length === 0) {
+            return await interaction.editReply(
+              "Tidak menemukan app yang dicari.",
+            );
+          }
+
+          const options = data.map((item) => {
+            return new StringSelectMenuOptionBuilder()
+              .setLabel(item.name)
+              .setDescription("Klik untuk melihat detail app")
+              .setValue(item.name); // Perbaikan dari .nme ke .name
+          });
+
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("appview")
+            .setPlaceholder("Pilih App...")
+            .addOptions(options);
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+
+          await interaction.editReply({
+            content: "Hasil pencarian app ditemukan:",
+            components: [row],
+          });
+          app.on("interactionCreate", async (interaction) => {
+            if (
+              !interaction.isStringSelectMenu() ||
+              interaction.customId !== "appview"
+            )
+              return;
+
+            try {
+              await interaction.deferUpdate();
+
+              const selectedappview = interaction.values[0];
+
+              const { data: appviws, error } = await supabase
+                .from("appview")
+                .select("*")
+                .eq("name", selectedappview)
+                .single();
+
+              if (error || !appviws) {
+                return await interaction.followUp({
+                  content: "app tidak ditemukan dalam basis data.",
+                  ephemeral: true,
+                });
+              }
+
+              const appEmbed = new EmbedBuilder()
+                .setColor(color.lavender)
+                .setTitle(`appview: ${appviws.name}`)
+                .setDescription("suport kami jika anda suka dengan bot kami")
+                .addFields([
+                  { name: "name", value: ability.name, inline: false },
+                ])
+                .setImage(appviws.image_url)
+                .setTimestamp()
+                .setFooter({ text: "Neura Sama" });
+
+              await interaction.editReply({
+                content: `Informasi mendetail untuk kemampuan: **${appviws.name}**`,
+                embeds: [appEmbed],
+                components: [],
+              });
+            } catch (err) {
+              console.error("Kegagalan pada penanganan seleksi app:", err);
+              if (interaction.deferred || interaction.replied) {
+                await interaction.followUp({
+                  content: "Terjadi gangguan saat memuat detail app.",
+                  ephemeral: true,
                 });
               }
             }
@@ -465,7 +598,6 @@ ${combined.map((item) => {
           await interaction.deferReply();
           const namaItem = interaction.options.getString("name");
 
-
           const { data, error } = await supabase
             .from("item")
             .select("*")
@@ -476,7 +608,6 @@ ${combined.map((item) => {
             return await interaction.editReply("Data item tidak ditemukan.");
           }
 
-
           const options = data.map((item) => {
             return new StringSelectMenuOptionBuilder()
               .setLabel(item.nama)
@@ -484,28 +615,24 @@ ${combined.map((item) => {
               .setValue(item.nama);
           });
 
-
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId("items_select")
             .setPlaceholder("Pilih item hasil pencarian...")
             .addOptions(options);
 
-
           const row = new ActionRowBuilder().addComponents(selectMenu);
-
 
           await interaction.editReply({
             content: `Ditemukan ${data.length} hasil pencarian untuk "${namaItem}":`,
-            components: [row]
+            components: [row],
           });
 
-          app.on('interactionCreate', async (interaction) => {
+          app.on("interactionCreate", async (interaction) => {
             if (!interaction.isStringSelectMenu()) return;
-            if (interaction.customId === 'items_select') {
+            if (interaction.customId === "items_select") {
               try {
                 await interaction.deferUpdate();
                 const selectedItemName = interaction.values[0];
-
 
                 const { data: item, error: itemError } = await supabase
                   .from("item")
@@ -513,12 +640,11 @@ ${combined.map((item) => {
                   .eq("nama", selectedItemName)
                   .single();
 
-
                 if (itemError || !item) {
                   console.error("Kesalahan kueri item:", itemError);
                   return await interaction.followUp({
                     content: "Gagal mendapatkan detail item dari database.",
-                    ephemeral: true
+                    ephemeral: true,
                   });
                 }
 
@@ -528,8 +654,14 @@ ${combined.map((item) => {
                   .addFields([
                     { name: "Nama", value: item.nama || "-", inline: true },
                     { name: "Tipe", value: item.jenis || "-", inline: true },
-                    { name: "Statistik", value: item.stat || "Tidak ada statistik" },
-                    { name: "Drop", value: item.drop || "Informasi drop tidak tersedia" }
+                    {
+                      name: "Statistik",
+                      value: item.stat || "Tidak ada statistik",
+                    },
+                    {
+                      name: "Drop",
+                      value: item.drop || "Informasi drop tidak tersedia",
+                    },
                   ])
                   .setFooter({ text: "Neura Sama" })
                   .setTimestamp();
@@ -537,36 +669,49 @@ ${combined.map((item) => {
                 await interaction.editReply({
                   content: `Berikut adalah rincian untuk **${item.nama}**:`,
                   embeds: [detailEmbed],
-                  components: []
+                  components: [],
                 });
-
               } catch (err) {
-                console.error("Terjadi kesalahan sistem pada penanganan seleksi:", err);
+                console.error(
+                  "Terjadi kesalahan sistem pada penanganan seleksi:",
+                  err,
+                );
                 if (interaction.deferred || interaction.replied) {
-                  await interaction.followUp({ content: "Terjadi kesalahan internal saat memproses data.", ephemeral: true });
+                  await interaction.followUp({
+                    content: "Terjadi kesalahan internal saat memproses data.",
+                    ephemeral: true,
+                  });
                 }
               }
             }
           });
-
         } catch (error) {
           console.error("Error pada command item:", error);
-          await interaction.editReply("Terjadi kesalahan saat memproses permintaan.");
+          await interaction.editReply(
+            "Terjadi kesalahan saat memproses permintaan.",
+          );
         }
         break;
       }
 
       default:
-        await interaction.reply({ content: "Perintah tidak dikenal.", ephemeral: true });
-
+        await interaction.reply({
+          content: "Perintah tidak dikenal.",
+          ephemeral: true,
+        });
     }
-
   } catch (error) {
     console.error(`Error pada perintah ${commandName}:`, error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: "Terjadi kesalahan internal.", ephemeral: true });
+      await interaction.followUp({
+        content: "Terjadi kesalahan internal.",
+        ephemeral: true,
+      });
     } else {
-      await interaction.reply({ content: "Terjadi kesalahan internal.", ephemeral: true });
+      await interaction.reply({
+        content: "Terjadi kesalahan internal.",
+        ephemeral: true,
+      });
     }
   }
 });
