@@ -542,7 +542,7 @@ ${combined
           try {
             const selectInteraction = await reply.awaitMessageComponent({
               filter: (i) => i.user.id === interaction.user.id,
-              time: 60_000,
+              time: 100_000,
             });
 
             await selectInteraction.deferUpdate();
