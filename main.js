@@ -246,7 +246,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
         try {
           const response = await fetch(process.env.BANNER);
           const res = await response.json();
-          const ava = res.data;
+          const ava = res.result;
 
           if (!ava || ava.length === 0) {
             return await interaction.editReply(
@@ -254,11 +254,11 @@ app.on(Events.InteractionCreate, async (interaction) => {
             );
           }
 
-          const bannertxt = ava.slice(0, 10).map((item) => {
+          const bannertxt = ava.data.map((item) => {
             return new EmbedBuilder()
               .setColor(color.wind)
-              .setTitle(item.title || "Untitled Banner")
-              .setDescription(`**Tanggal:** ${item.dateStr || "N/A"}`)
+              .setTitle(item.name || "Untitled Banner")
+              .setDescription(`**Tanggal:** ${item.date || "N/A"}`)
               .setImage(item.image)
               .setTimestamp()
               .setFooter({ text: "Neura Sama Update Banner" });
