@@ -349,14 +349,9 @@ app.on(Events.InteractionCreate, async (interaction) => {
               .addFields([
                 { name: "Tipe", value: item.type || "-", inline: true },
                 {
-                  name: "Upgrade",
-                  value: item.upgrade || "Bukan Upgrade",
-                  inline: true,
-                },
-                {
                   name: "Route",
                   value:
-                    `- ${item.upgrade_route}\n- ${item.max_upgrade_route}` ||
+                    `- ${item.upgrade_route}\n- ${item.max_upgrade_route || "tidak ada"}` ||
                     "-",
                   inline: false,
                 },
