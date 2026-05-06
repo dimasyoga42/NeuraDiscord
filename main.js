@@ -328,7 +328,9 @@ app.on(Events.InteractionCreate, async (interaction) => {
           const xtalName = interaction.options.getString("name");
           const { data, error } = await supabase
             .from("xtal")
-            .select("name, type, upgrade, route, stat")
+            .select(
+              "name, type, upgrade_route, max_upgrade_route, route, stats",
+            )
             .ilike("name", `%${xtalName}%`)
             .limit(10);
 
@@ -339,7 +341,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
           }
 
           const messageXtal = data.map((item) => {
-            let rawStat = item.stat || "Tidak ada data statistik.";
+            let rawStat = item.stats || "Tidak ada data statistik.";
             if (rawStat.length > 1000)
               rawStat = rawStat.substring(0, 1000) + "...";
 
@@ -353,7 +355,13 @@ app.on(Events.InteractionCreate, async (interaction) => {
                   value: item.upgrade || "Bukan Upgrade",
                   inline: true,
                 },
-                { name: "Route", value: item.route || "-", inline: false },
+                {
+                  name: "Route",
+                  value:
+                    `- ${item.upgrade_route}\n- ${item.max_upgrade_route}` ||
+                    "-",
+                  inline: false,
+                },
                 { name: "Stat", value: `${rawStat}` },
               ])
               .setDescription("Hubungi owner jika ada bug data.")
