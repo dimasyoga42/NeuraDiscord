@@ -17,7 +17,6 @@ import { lv } from "./src/plug/lv.js";
 import cron from "node-cron";
 dotenv.config();
 
-// 1. Validasi Environment Variable
 if (!process.env.TOKEN || !process.env.CLIENT_ID) {
   console.error("Error Fatal: Konfigurasi .env tidak lengkap.");
   process.exit(1);
@@ -328,7 +327,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const xtalName = interaction.options.getString("name");
           const { data, error } = await supabase
-            .from("xtal")
+            .from("xtalv2")
             .select("name, type, upgrade, route, stat")
             .ilike("name", `%${xtalName}%`)
             .limit(10);
@@ -415,7 +414,7 @@ ${combined
           await interaction.deferReply();
           const nameAbility = interaction.options.getString("name");
           const { data, error } = await supabase
-            .from("ability")
+            .from("ablityv2")
             .select("*")
             .ilike("name", `%${nameAbility}%`)
             .limit(10);
@@ -457,7 +456,7 @@ ${combined
               const selectedAbilityName = interaction.values[0];
 
               const { data: ability, error } = await supabase
-                .from("ability")
+                .from("ablityv2")
                 .select("*")
                 .eq("name", selectedAbilityName)
                 .single();
@@ -475,7 +474,6 @@ ${combined
                 .setDescription("suport kami jika anda suka dengan bot kami")
                 .addFields([
                   { name: "name", value: ability.name, inline: false },
-                  { name: "tier", value: ability.tier, inline: false },
                   { name: "stat", value: ability.stat_effect, inline: false },
                 ])
                 .setTimestamp()
