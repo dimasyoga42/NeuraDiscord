@@ -327,7 +327,7 @@ app.on(Events.InteractionCreate, async (interaction) => {
 
           const xtalName = interaction.options.getString("name");
           const { data, error } = await supabase
-            .from("xtalv2")
+            .from("xtal")
             .select("name, type, upgrade, route, stat")
             .ilike("name", `%${xtalName}%`)
             .limit(10);
