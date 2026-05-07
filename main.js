@@ -4,10 +4,6 @@ import dotenv from "dotenv";
 
 import { Player } from "discord-player";
 
-import extractors from "@discord-player/extractor";
-
-const { YoutubeiExtractor } = extractors;
-
 dotenv.config();
 
 const app = new Client({
@@ -18,8 +14,8 @@ app.commands = new Collection();
 
 app.player = new Player(app);
 
-await app.player.extractors.register(YoutubeiExtractor, {});
+await app.player.extractors.loadDefault();
 
-console.log("extractor loaded");
+console.log("all extractors loaded");
 
 app.login(process.env.TOKEN);
