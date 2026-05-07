@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 
 import { Player } from "discord-player";
 
-import { YoutubeiExtractor } from "@discord-player/extractor";
+import extractors from "@discord-player/extractor";
+
+const { YoutubeiExtractor } = extractors;
 
 dotenv.config();
 
@@ -17,5 +19,7 @@ app.commands = new Collection();
 app.player = new Player(app);
 
 await app.player.extractors.register(YoutubeiExtractor, {});
+
+console.log("extractor loaded");
 
 app.login(process.env.TOKEN);
