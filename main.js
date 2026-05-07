@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 
 import { Player } from "discord-player";
 
+import { DefaultExtractors } from "@discord-player/extractor";
+
 dotenv.config();
 
 const app = new Client({
@@ -14,8 +16,8 @@ app.commands = new Collection();
 
 app.player = new Player(app);
 
-await app.player.extractors.loadDefault();
+await app.player.extractors.loadMulti(DefaultExtractors);
 
-console.log("all extractors loaded");
+console.log("extractors loaded");
 
 app.login(process.env.TOKEN);
