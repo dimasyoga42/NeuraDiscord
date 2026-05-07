@@ -3,8 +3,9 @@ import { Client, Collection, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 
 import { Player } from "discord-player";
-import { DefaultExtractors } from "@discord-player/extractor";
+
 import { loadCommands, loadEvents } from "./src/utils/loader.js";
+
 import { registerExtractor } from "./src/events/registerExtractor.js";
 
 dotenv.config();
@@ -17,20 +18,24 @@ app.commands = new Collection();
 
 app.player = new Player(app);
 
-await app.player.extractors.loadDefault((ext) => ext !== "YouTubeExtractor");
-console.log("extractors loaded");
+await registerExtractor(app.player);
+
+console.log("youtube extractor loaded");
 
 await loadCommands(app);
-await registerExtractor(app.player);
+
 await loadEvents(app);
+
 app.player.events.on("playerStart", (queue, track) => {
   console.log(`playing ${track.title}`);
 });
-app.player.events.on("debug", (queue, message) => {
-  console.log(message);
-});
+
 app.player.events.on("audioTrackAdd", (queue, track) => {
   console.log(`added ${track.title}`);
+});
+
+app.player.events.on("debug", (queue, message) => {
+  console.log(message);
 });
 
 app.player.events.on("error", (queue, error) => {
@@ -40,4 +45,5 @@ app.player.events.on("error", (queue, error) => {
 app.player.events.on("playerError", (queue, error) => {
   console.log(error);
 });
+
 app.login(process.env.TOKEN);
