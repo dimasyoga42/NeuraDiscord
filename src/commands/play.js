@@ -22,6 +22,11 @@ export default {
         requestedBy: interaction.user,
       });
 
+      console.log(
+        "search result:",
+        JSON.stringify(searchResult?.tracks?.[0], null, 2),
+      ); // <-- debug
+
       if (!searchResult || !searchResult.tracks.length) {
         return interaction.editReply("musik tidak ditemukan");
       }
@@ -35,13 +40,13 @@ export default {
         leaveOnEnd: true,
         leaveOnEndCooldown: 300000,
         leaveOnStop: true,
-        selfDeaf: true, // <-- tambahan
+        selfDeaf: true,
         volume: 80,
       });
 
       try {
         if (!queue.connection) {
-          await queue.connect(voiceChannel, { deaf: true }); // <-- tambahan
+          await queue.connect(voiceChannel, { deaf: true });
         }
       } catch {
         queue.delete();
@@ -51,7 +56,7 @@ export default {
       queue.addTrack(searchResult.tracks[0]);
 
       if (!queue.isPlaying()) {
-        await queue.node.play(); // <-- hapus setVolume, kadang bikin bug
+        await queue.node.play();
       }
 
       await interaction.editReply(

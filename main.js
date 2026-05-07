@@ -14,14 +14,15 @@ app.commands = new Collection();
 app.player = new Player(app);
 
 await registerExtractor(app.player);
-console.log("youtube extractor loaded");
+console.log("extractors loaded:", app.player.extractors.store.size); // harus > 0
+console.log("extractor list:", [...app.player.extractors.store.keys()]);
 
 await loadCommands(app);
 await loadEvents(app);
 
 app.player.events.on("playerStart", (queue, track) => {
   console.log(`playing ${track.title}`);
-  console.log(`stream url: ${track.url}`); // <-- tambahan
+  console.log(`stream url: ${track.url}`);
 });
 
 app.player.events.on("audioTrackAdd", (queue, track) => {
