@@ -6,37 +6,26 @@ import {
   createAudioResource,
   AudioPlayerStatus,
   NoSubscriberBehavior,
+  StreamType,
 } from "@discordjs/voice";
 
-import ytSearch from "yt-search";
-
-import { exec } from "child_process";
-
-import path from "path";
-
-import fs from "fs";
+import scdl from "soundcloud-downloader";
 
 export default {
   name: "play",
 
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("play musik dari youtube")
+    .setDescription("play musik soundcloud")
     .addStringOption((option) =>
-      option
-        .setName("judul")
-        .setDescription("masukan judul musik")
-        .setRequired(true),
+      option.setName("url").setDescription("url soundcloud").setRequired(true),
     ),
 
   async execute(interaction) {
-    let output = null;
-    let connection = null;
-
     try {
       await interaction.deferReply();
 
-      const query = interaction.options.getString("judul");
+      const url = interaction.options.getString("url");
 
       const voiceChannel = interaction.member.voice.channel;
 
@@ -44,48 +33,14 @@ export default {
         return interaction.editReply("masuk vc dulu");
       }
 
-      const search = await ytSearch(query);
+      const info = await scdl.getInfo(url);
 
-      const video = search.videos[0];
+      const stream = await scdl.download(url);
 
-      if (!video) {
-        return interaction.editReply("musik tidak ditemukan");
-      }
-
-      const fileName = `${Date.now()}.mp3`;
-
-      output = path.resolve(`./temp/${fileName}`);
-
-      await interaction.editReply(`⏳ mengunduh:\n${video.title}`);
-
-      await new Promise((resolve, reject) => {
-        const command = `
-yt-dlp \
---cookies /home/ubuntu/NeuraDiscord/cookies.txt \
---extractor-args "youtube:player_client=android" \
---extract-audio \
---audio-format mp3 \
---audio-quality 0 \
--o "${output}" \
-"${video.url}"
-`;
-
-        exec(command, (err, stdout, stderr) => {
-          if (err) {
-            console.log(stderr);
-
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      connection = joinVoiceChannel({
+      const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: voiceChannel.guild.id,
         adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-
         selfDeaf: false,
       });
 
@@ -95,57 +50,36 @@ yt-dlp \
         },
       });
 
-      const resource = createAudioResource(output);
+      const resource = createAudioResource(stream, {
+        inputType: StreamType.Arbitrary,
+        inlineVolume: true,
+      });
 
       connection.subscribe(player);
 
       player.play(resource);
 
-      player.on(AudioPlayerStatus.Playing, async () => {
-        console.log(`playing ${video.title}`);
-
-        await interaction.followUp(`🎵 sekarang memutar:\n${video.title}`);
+      player.on(AudioPlayerStatus.Playing, () => {
+        console.log(`playing ${info.title}`);
       });
 
-      player.on(AudioPlayerStatus.Idle, async () => {
+      player.on(AudioPlayerStatus.Idle, () => {
         console.log("music finished");
 
-        try {
-          connection.destroy();
-        } catch {}
-
-        if (output && fs.existsSync(output)) {
-          fs.unlinkSync(output);
-        }
+        connection.destroy();
       });
 
-      player.on("error", async (err) => {
+      player.on("error", (err) => {
         console.log(err);
 
-        try {
-          connection.destroy();
-        } catch {}
-
-        if (output && fs.existsSync(output)) {
-          fs.unlinkSync(output);
-        }
+        connection.destroy();
       });
+
+      await interaction.editReply(`🎵 sekarang memutar:\n${info.title}`);
     } catch (err) {
       console.log(err);
 
-      try {
-        if (connection) {
-          connection.destroy();
-        }
-      } catch {}
-
-      if (output && fs.existsSync(output)) {
-        fs.unlinkSync(output);
-      }
-
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("gagal memutar musik");
-      }
+      await interaction.editReply("gagal memutar musik");
     }
   },
 };
