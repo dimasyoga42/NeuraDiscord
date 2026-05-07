@@ -33,14 +33,13 @@ export default {
         return interaction.editReply("masuk vc dulu");
       }
 
-      const info = await scdl.getInfo(url);
-
       const stream = await scdl.download(url);
 
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: voiceChannel.guild.id,
         adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+
         selfDeaf: false,
       });
 
@@ -60,7 +59,7 @@ export default {
       player.play(resource);
 
       player.on(AudioPlayerStatus.Playing, () => {
-        console.log(`playing ${info.title}`);
+        console.log("music started");
       });
 
       player.on(AudioPlayerStatus.Idle, () => {
@@ -75,7 +74,7 @@ export default {
         connection.destroy();
       });
 
-      await interaction.editReply(`🎵 sekarang memutar:\n${info.title}`);
+      await interaction.editReply(`🎵 sekarang memutar`);
     } catch (err) {
       console.log(err);
 
