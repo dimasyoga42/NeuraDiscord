@@ -3,10 +3,9 @@ import { Client, Collection, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 
 import { Player } from "discord-player";
-
 import { DefaultExtractors } from "@discord-player/extractor";
-
 import { loadCommands, loadEvents } from "./src/utils/loader.js";
+import { registerExtractor } from "./src/events/registerExtractor.js";
 
 dotenv.config();
 
@@ -18,12 +17,11 @@ app.commands = new Collection();
 
 app.player = new Player(app);
 
-await app.player.extractors.loadMulti(DefaultExtractors);
-
+await app.player.extractors.loadDefault((ext) => ext !== "YouTubeExtractor");
 console.log("extractors loaded");
 
 await loadCommands(app);
-
+await registerExtractor(app.player);
 await loadEvents(app);
 app.player.events.on("playerStart", (queue, track) => {
   console.log(`playing ${track.title}`);
