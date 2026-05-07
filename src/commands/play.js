@@ -21,20 +21,26 @@ export default {
 
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("play musik")
+    .setDescription("play musik dari youtube")
     .addStringOption((option) =>
-      option.setName("judul").setDescription("judul musik").setRequired(true),
+      option
+        .setName("judul")
+        .setDescription("masukan judul musik")
+        .setRequired(true),
     ),
 
   async execute(interaction) {
+    let output = null;
+    let connection = null;
+
     try {
       await interaction.deferReply();
 
       const query = interaction.options.getString("judul");
 
-      const vc = interaction.member.voice.channel;
+      const voiceChannel = interaction.member.voice.channel;
 
-      if (!vc) {
+      if (!voiceChannel) {
         return interaction.editReply("masuk vc dulu");
       }
 
@@ -48,24 +54,39 @@ export default {
 
       const fileName = `${Date.now()}.mp3`;
 
-      const output = path.resolve(`./temp/${fileName}`);
+      output = path.resolve(`./temp/${fileName}`);
 
-      await interaction.editReply(`mengunduh ${video.title}`);
+      await interaction.editReply(`⏳ mengunduh:\n${video.title}`);
 
       await new Promise((resolve, reject) => {
-        exec(
-          `yt-dlp -x --audio-format mp3 -o "${output}" "${video.url}"`,
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          },
-        );
+        const command = `
+yt-dlp \
+--cookies /home/ubuntu/NeuraDiscord/cookies.txt \
+--extractor-args "youtube:player_client=android" \
+--extract-audio \
+--audio-format mp3 \
+--audio-quality 0 \
+-o "${output}" \
+"${video.url}"
+`;
+
+        exec(command, (err, stdout, stderr) => {
+          if (err) {
+            console.log(stderr);
+
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
 
-      const connection = joinVoiceChannel({
-        channelId: vc.id,
-        guildId: vc.guild.id,
-        adapterCreator: vc.guild.voiceAdapterCreator,
+      connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: voiceChannel.guild.id,
+        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+
+        selfDeaf: false,
       });
 
       const player = createAudioPlayer({
@@ -86,29 +107,45 @@ export default {
         await interaction.followUp(`🎵 sekarang memutar:\n${video.title}`);
       });
 
-      player.on(AudioPlayerStatus.Idle, () => {
+      player.on(AudioPlayerStatus.Idle, async () => {
         console.log("music finished");
 
-        connection.destroy();
+        try {
+          connection.destroy();
+        } catch {}
 
-        if (fs.existsSync(output)) {
+        if (output && fs.existsSync(output)) {
           fs.unlinkSync(output);
         }
       });
 
-      player.on("error", (err) => {
+      player.on("error", async (err) => {
         console.log(err);
 
-        connection.destroy();
+        try {
+          connection.destroy();
+        } catch {}
 
-        if (fs.existsSync(output)) {
+        if (output && fs.existsSync(output)) {
           fs.unlinkSync(output);
         }
       });
     } catch (err) {
       console.log(err);
 
-      await interaction.editReply("gagal memutar musik");
+      try {
+        if (connection) {
+          connection.destroy();
+        }
+      } catch {}
+
+      if (output && fs.existsSync(output)) {
+        fs.unlinkSync(output);
+      }
+
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply("gagal memutar musik");
+      }
     }
   },
 };
