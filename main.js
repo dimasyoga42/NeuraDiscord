@@ -1,20 +1,21 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 
-import { Player } from "discord-player";
 import dotenv from "dotenv";
 
-import { loadCommands } from "./src/utils/loader.js";
-import { loadEvents } from "./src/utils/loader.js";
+import { Player } from "discord-player";
+
+import { YoutubeiExtractor } from "@discord-player/extractor";
 
 dotenv.config();
 
 const app = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
-app.player = new Player(app);
+
 app.commands = new Collection();
 
-await loadCommands(app);
-await loadEvents(app);
+app.player = new Player(app);
+
+await app.player.extractors.register(YoutubeiExtractor, {});
 
 app.login(process.env.TOKEN);

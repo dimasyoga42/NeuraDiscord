@@ -7,7 +7,7 @@ export default {
     .setName("play")
     .setDescription("play musik")
     .addStringOption((option) =>
-      option.setName("judul").setDescription("judul lagu").setRequired(true),
+      option.setName("judul").setDescription("judul musik").setRequired(true),
     ),
 
   async execute(interaction, client) {
@@ -22,21 +22,21 @@ export default {
         return interaction.editReply("masuk vc dulu");
       }
 
-      const searchResult = await client.player.search(query, {
+      const result = await client.player.search(query, {
         requestedBy: interaction.user,
       });
 
-      if (!searchResult.hasTracks()) {
+      if (!result.hasTracks()) {
         return interaction.editReply("musik tidak ditemukan");
       }
 
-      const { track } = await client.player.play(voiceChannel, searchResult, {
+      const { track } = await client.player.play(voiceChannel, result, {
         nodeOptions: {
           metadata: interaction,
         },
       });
 
-      await interaction.editReply(`sedang memutar:\n${track.title}`);
+      await interaction.editReply(`🎵 sekarang memutar:\n${track.title}`);
     } catch (err) {
       console.error(err);
 
