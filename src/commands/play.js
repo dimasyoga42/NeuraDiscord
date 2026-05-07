@@ -1,88 +1,85 @@
 import { SlashCommandBuilder } from "discord.js";
-import { useMainPlayer } from "discord-player";
+import { QueryType } from "discord-player";
 
 export default {
   name: "play",
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Memutar musik berdasarkan judul atau tautan")
+    .setDescription("Memutar musik dengan sistem ekstraktor terintegrasi")
     .addStringOption((option) =>
       option
         .setName("judul")
-        .setDescription("Masukkan judul lagu atau URL (YouTube/Spotify)")
+        .setDescription("Judul lagu, artis, atau tautan YouTube")
         .setRequired(true),
     ),
 
-  async execute(interaction) {
-    const player = useMainPlayer();
+  async execute(interaction, client) {
+    // Memastikan interaksi dideferensi karena proses pencarian membutuhkan waktu
+    await interaction.deferReply();
+
     const query = interaction.options.getString("judul");
     const voiceChannel = interaction.member.voice.channel;
 
-    // Validasi keberadaan pengguna di saluran suara
+    // Validasi keberadaan user di Voice Channel
     if (!voiceChannel) {
-      return interaction.reply({
-        content:
-          "Anda harus berada di dalam saluran suara untuk menggunakan perintah ini.",
-        ephemeral: true,
-      });
+      return interaction.editReply(
+        "Anda harus masuk ke saluran suara terlebih dahulu.",
+      );
     }
-
-    // Memastikan bot memiliki izin untuk bergabung dan berbicara
-    const permissions = voiceChannel.permissionsFor(interaction.client.user);
-    if (!permissions.has("Connect") || !permissions.has("Speak")) {
-      return interaction.reply({
-        content:
-          "Saya tidak memiliki izin untuk bergabung atau berbicara di saluran suara Anda.",
-        ephemeral: true,
-      });
-    }
-
-    await interaction.deferReply();
 
     try {
-      const searchResult = await player.search(query, {
+      // Menggunakan instance player yang sudah terdaftar di client (app.player)
+      const searchResult = await client.player.search(query, {
         requestedBy: interaction.user,
+        searchEngine: QueryType.AUTO,
       });
 
       if (!searchResult || !searchResult.tracks.length) {
         return interaction.editReply(
-          `Pencarian untuk **${query}** tidak ditemukan.`,
+          `Hasil pencarian untuk "**${query}**" tidak ditemukan.`,
         );
       }
 
-      const { track } = await player.play(voiceChannel, searchResult, {
-        nodeOptions: {
-          metadata: {
-            channel: interaction.channel,
-            client: interaction.client,
-          },
-          leaveOnEmpty: true,
-          leaveOnEmptyCooldown: 300000,
-          leaveOnEnd: true,
-          leaveOnEndCooldown: 300000,
-          leaveOnStop: true,
-          selfDeaf: true,
-          volume: 80,
-          bufferingTimeout: 15000,
+      // Membuat atau mengambil antrean aktif untuk server tersebut
+      const queue = client.player.nodes.create(interaction.guild, {
+        metadata: {
+          channel: interaction.channel,
         },
+        selfDeaf: true,
+        volume: 80,
+        leaveOnEmpty: true,
+        leaveOnEnd: true,
       });
 
+      // Menangani proses koneksi ke saluran suara
+      try {
+        if (!queue.connection) await queue.connect(voiceChannel);
+      } catch (err) {
+        queue.delete();
+        return interaction.editReply("Gagal menyambung ke saluran suara Anda.");
+      }
+
+      // Menambahkan lagu atau playlist ke antrean
+      const track = searchResult.tracks[0];
+      searchResult.playlist
+        ? queue.addTrack(searchResult.tracks)
+        : queue.addTrack(track);
+
+      // Memulai pemutaran jika antrean sedang dalam posisi idle
+      if (!queue.isPlaying()) {
+        await queue.node.play();
+      }
+
       return interaction.editReply(
-        `🎵 Sekarang memutar: **${track.title}** oleh **${track.author}**`,
+        searchResult.playlist
+          ? `✅ Ditambahkan ke antrean: **${searchResult.playlist.title}** (${searchResult.tracks.length} lagu)`
+          : `✅ Sekarang memutar: **${track.title}**`,
       );
     } catch (error) {
-      console.error("Terjadi kesalahan pada eksekusi perintah play:", error);
-
-      if (interaction.deferred || interaction.replied) {
-        return interaction.editReply(
-          "Terjadi kesalahan teknis saat mencoba memutar musik.",
-        );
-      } else {
-        return interaction.reply({
-          content: "Gagal mengeksekusi perintah karena gangguan internal.",
-          ephemeral: true,
-        });
-      }
+      console.error("Terjadi kesalahan pada command play:", error);
+      return interaction.editReply(
+        "Terjadi kesalahan internal saat mencoba memutar musik.",
+      );
     }
   },
 };
