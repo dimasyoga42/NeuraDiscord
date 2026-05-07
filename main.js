@@ -8,7 +8,7 @@ import { loadEvents } from "./src/utils/loader.js";
 dotenv.config();
 
 const app = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
 app.commands = new Collection();
