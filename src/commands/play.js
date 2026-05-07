@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { useMainPlayer } from "discord-player";
 
 export default {
   name: "play",
@@ -18,50 +19,25 @@ export default {
         return interaction.editReply("masuk vc dulu");
       }
 
-      const searchResult = await client.player.search(query, {
+      const player = useMainPlayer();
+
+      const { track } = await player.play(voiceChannel, query, {
+        nodeOptions: {
+          metadata: {
+            channel: interaction.channel,
+          },
+          leaveOnEmpty: true,
+          leaveOnEmptyCooldown: 300000,
+          leaveOnEnd: true,
+          leaveOnEndCooldown: 300000,
+          leaveOnStop: true,
+          selfDeaf: true,
+          volume: 80,
+        },
         requestedBy: interaction.user,
       });
 
-      console.log(
-        "search result:",
-        JSON.stringify(searchResult?.tracks?.[0], null, 2),
-      ); // <-- debug
-
-      if (!searchResult || !searchResult.tracks.length) {
-        return interaction.editReply("musik tidak ditemukan");
-      }
-
-      const queue = client.player.nodes.create(interaction.guild, {
-        metadata: {
-          channel: interaction.channel,
-        },
-        leaveOnEmpty: true,
-        leaveOnEmptyCooldown: 300000,
-        leaveOnEnd: true,
-        leaveOnEndCooldown: 300000,
-        leaveOnStop: true,
-        selfDeaf: true,
-        volume: 80,
-      });
-
-      try {
-        if (!queue.connection) {
-          await queue.connect(voiceChannel, { deaf: true });
-        }
-      } catch {
-        queue.delete();
-        return interaction.editReply("gagal join vc");
-      }
-
-      queue.addTrack(searchResult.tracks[0]);
-
-      if (!queue.isPlaying()) {
-        await queue.node.play();
-      }
-
-      await interaction.editReply(
-        `🎵 sekarang memutar:\n**${searchResult.tracks[0].title}**`,
-      );
+      await interaction.editReply(`🎵 sekarang memutar:\n**${track.title}**`);
     } catch (err) {
       console.error(err);
       if (interaction.deferred) {
