@@ -25,5 +25,15 @@ console.log("extractors loaded");
 await loadCommands(app);
 
 await loadEvents(app);
+app.player.events.on("playerStart", (queue, track) => {
+  console.log(`playing ${track.title}`);
+});
 
+app.player.events.on("error", (queue, error) => {
+  console.log(error);
+});
+
+app.player.events.on("playerError", (queue, error) => {
+  console.log(error);
+});
 app.login(process.env.TOKEN);
