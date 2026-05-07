@@ -1,3 +1,7 @@
 import { useMainPlayer } from "discord-player";
 
-export const player = useMainPlayer();
+/**
+ * Mengambil instance utama player secara dinamis.
+ * Hal ini mencegah error null jika diakses sebelum inisialisasi.
+ */
+export const getPlayer = () => useMainPlayer();

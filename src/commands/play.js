@@ -1,87 +1,87 @@
 import { SlashCommandBuilder } from "discord.js";
-import {
-  joinVoiceChannel,
-  createAudioPlayer,
-  createAudioResource,
-  AudioPlayerStatus,
-  NoSubscriberBehavior,
-  StreamType,
-  entersState,
-  VoiceConnectionStatus,
-} from "@discordjs/voice";
-import scdl from "soundcloud-downloader";
+import { useMainPlayer } from "discord-player";
 
 export default {
   name: "play",
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Memutar musik dari SoundCloud")
+    .setDescription("Memutar musik berdasarkan judul atau tautan")
     .addStringOption((option) =>
-      option.setName("url").setDescription("URL SoundCloud").setRequired(true),
+      option
+        .setName("judul")
+        .setDescription("Masukkan judul lagu atau URL (YouTube/Spotify)")
+        .setRequired(true),
     ),
 
   async execute(interaction) {
+    const player = useMainPlayer();
+    const query = interaction.options.getString("judul");
+    const voiceChannel = interaction.member.voice.channel;
+
+    // Validasi keberadaan pengguna di saluran suara
+    if (!voiceChannel) {
+      return interaction.reply({
+        content:
+          "Anda harus berada di dalam saluran suara untuk menggunakan perintah ini.",
+        ephemeral: true,
+      });
+    }
+
+    // Memastikan bot memiliki izin untuk bergabung dan berbicara
+    const permissions = voiceChannel.permissionsFor(interaction.client.user);
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content:
+          "Saya tidak memiliki izin untuk bergabung atau berbicara di saluran suara Anda.",
+        ephemeral: true,
+      });
+    }
+
+    await interaction.deferReply();
+
     try {
-      await interaction.deferReply();
-      const url = interaction.options.getString("url");
-      const voiceChannel = interaction.member.voice.channel;
-
-      if (!voiceChannel) {
-        return interaction.editReply("Anda harus berada di saluran suara.");
-      }
-
-      // Perbaikan: Gunakan metode validasi yang benar atau pengecekan regex jika metode bawaan gagal
-      const isValid = scdl.default
-        ? scdl.default.validateURL(url)
-        : scdl.validateURL(url);
-      if (!isValid) {
-        return interaction.editReply("Format URL SoundCloud tidak valid.");
-      }
-
-      const connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: voiceChannel.guild.id,
-        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      const searchResult = await player.search(query, {
+        requestedBy: interaction.user,
       });
 
-      // Memastikan koneksi siap sebelum memutar
-      await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+      if (!searchResult || !searchResult.tracks.length) {
+        return interaction.editReply(
+          `Pencarian untuk **${query}** tidak ditemukan.`,
+        );
+      }
 
-      // Mengambil stream dengan penanganan error internal
-      const stream = await scdl.default.download(url).catch((err) => {
-        throw new Error(`Gagal mengunduh stream: ${err.message}`);
-      });
-
-      const player = createAudioPlayer({
-        behaviors: {
-          noSubscriber: NoSubscriberBehavior.Play,
+      const { track } = await player.play(voiceChannel, searchResult, {
+        nodeOptions: {
+          metadata: {
+            channel: interaction.channel,
+            client: interaction.client,
+          },
+          leaveOnEmpty: true,
+          leaveOnEmptyCooldown: 300000,
+          leaveOnEnd: true,
+          leaveOnEndCooldown: 300000,
+          leaveOnStop: true,
+          selfDeaf: true,
+          volume: 80,
+          bufferingTimeout: 15000,
         },
       });
 
-      const resource = createAudioResource(stream, {
-        inputType: StreamType.Arbitrary,
-        inlineVolume: true,
-      });
+      return interaction.editReply(
+        `🎵 Sekarang memutar: **${track.title}** oleh **${track.author}**`,
+      );
+    } catch (error) {
+      console.error("Terjadi kesalahan pada eksekusi perintah play:", error);
 
-      connection.subscribe(player);
-      player.play(resource);
-
-      player.on(AudioPlayerStatus.Idle, () => {
-        if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
-          connection.destroy();
-        }
-      });
-
-      player.on("error", (error) => {
-        console.error(`Audio Player Error: ${error.message}`);
-        connection.destroy();
-      });
-
-      await interaction.editReply(`🎵 Memutar musik dari SoundCloud...`);
-    } catch (err) {
-      console.error("[Execution Error]", err);
       if (interaction.deferred || interaction.replied) {
-        await interaction.editReply(`Gagal memutar: ${err.message}`);
+        return interaction.editReply(
+          "Terjadi kesalahan teknis saat mencoba memutar musik.",
+        );
+      } else {
+        return interaction.reply({
+          content: "Gagal mengeksekusi perintah karena gangguan internal.",
+          ephemeral: true,
+        });
       }
     }
   },
