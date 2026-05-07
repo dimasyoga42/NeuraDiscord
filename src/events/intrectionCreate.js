@@ -14,18 +14,6 @@ export default {
       await command.execute(interaction, client);
     } catch (err) {
       console.error(err);
-
-      if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({
-          content: "terjadi kesalahan",
-          ephemeral: true,
-        });
-      } else {
-        await interaction.reply({
-          content: "terjadi kesalahan",
-          ephemeral: true,
-        });
-      }
     }
   },
 };
