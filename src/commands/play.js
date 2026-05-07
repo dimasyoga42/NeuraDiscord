@@ -59,6 +59,8 @@ export default {
       queue.addTrack(searchResult.tracks[0]);
 
       if (!queue.isPlaying()) {
+        queue.node.setVolume(100);
+
         await queue.node.play();
       }
 
