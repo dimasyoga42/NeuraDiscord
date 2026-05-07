@@ -11,8 +11,10 @@ const app = new Client({
 });
 
 app.commands = new Collection();
-app.player = new Player(app);
-
+app.player = new Player(app, {
+  skipFFmpeg: false,
+  useLegacyFFmpeg: false,
+});
 await registerExtractor(app.player);
 console.log("extractors loaded:", app.player.extractors.store.size); // harus > 0
 console.log("extractor list:", [...app.player.extractors.store.keys()]);
