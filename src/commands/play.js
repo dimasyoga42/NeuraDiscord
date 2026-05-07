@@ -26,21 +26,45 @@ export default {
         requestedBy: interaction.user,
       });
 
-      if (!result.hasTracks()) {
+      if (!result?.tracks?.length) {
         return interaction.editReply("musik tidak ditemukan");
       }
 
-      const { track } = await client.player.play(voiceChannel, result, {
+      const track = result.tracks[0];
+
+      await client.player.play(voiceChannel, track, {
         nodeOptions: {
-          metadata: interaction,
+          metadata: {
+            channel: interaction.channel,
+            client: interaction.guild.members.me,
+            requestedBy: interaction.user,
+          },
+
+          volume: 80,
+
+          leaveOnEnd: true,
+          leaveOnEndCooldown: 300000,
+
+          leaveOnStop: true,
+          leaveOnStopCooldown: 300000,
+
+          bufferingTimeout: 15000,
         },
       });
 
-      await interaction.editReply(`🎵 sekarang memutar:\n${track.title}`);
+      await interaction.editReply({
+        content:
+          `🎵 sekarang memutar\n\n` +
+          `judul: ${track.title}\n` +
+          `durasi: ${track.duration}\n` +
+          `author: ${track.author}`,
+      });
     } catch (err) {
       console.error(err);
 
-      await interaction.editReply("gagal memutar musik");
+      if (interaction.deferred) {
+        await interaction.editReply("gagal memutar musik");
+      }
     }
   },
 };
