@@ -11,7 +11,7 @@ export default {
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
       .setTitle("Menu Neura Sama")
-      .setDescription("list command");
+      .setDescription("- /bantuan\n- /xtal");
 
     await interaction.reply({
       embeds: [embed],
