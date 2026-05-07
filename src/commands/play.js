@@ -7,7 +7,7 @@ export default {
     .setName("play")
     .setDescription("play musik")
     .addStringOption((option) =>
-      option.setName("judul").setDescription("judul musik").setRequired(true),
+      option.setName("judul").setDescription("judul lagu").setRequired(true),
     ),
 
   async execute(interaction, client) {
@@ -22,43 +22,49 @@ export default {
         return interaction.editReply("masuk vc dulu");
       }
 
-      const result = await client.player.search(query, {
+      const searchResult = await client.player.search(query, {
         requestedBy: interaction.user,
       });
 
-      if (!result?.tracks?.length) {
+      if (!searchResult || !searchResult.tracks.length) {
         return interaction.editReply("musik tidak ditemukan");
       }
 
-      const track = result.tracks[0];
-
-      await client.player.play(voiceChannel, track, {
-        nodeOptions: {
-          metadata: {
-            channel: interaction.channel,
-            client: interaction.guild.members.me,
-            requestedBy: interaction.user,
-          },
-
-          volume: 80,
-
-          leaveOnEnd: true,
-          leaveOnEndCooldown: 300000,
-
-          leaveOnStop: true,
-          leaveOnStopCooldown: 300000,
-
-          bufferingTimeout: 15000,
+      const queue = client.player.nodes.create(interaction.guild, {
+        metadata: {
+          channel: interaction.channel,
         },
+
+        leaveOnEmpty: true,
+        leaveOnEmptyCooldown: 300000,
+
+        leaveOnEnd: true,
+        leaveOnEndCooldown: 300000,
+
+        leaveOnStop: true,
+
+        volume: 80,
       });
 
-      await interaction.editReply({
-        content:
-          `🎵 sekarang memutar\n\n` +
-          `judul: ${track.title}\n` +
-          `durasi: ${track.duration}\n` +
-          `author: ${track.author}`,
-      });
+      try {
+        if (!queue.connection) {
+          await queue.connect(voiceChannel);
+        }
+      } catch {
+        queue.delete();
+
+        return interaction.editReply("gagal join vc");
+      }
+
+      queue.addTrack(searchResult.tracks[0]);
+
+      if (!queue.isPlaying()) {
+        await queue.node.play();
+      }
+
+      await interaction.editReply(
+        `🎵 sekarang memutar:\n${searchResult.tracks[0].title}`,
+      );
     } catch (err) {
       console.error(err);
 

@@ -29,6 +29,10 @@ app.player.events.on("playerStart", (queue, track) => {
   console.log(`playing ${track.title}`);
 });
 
+app.player.events.on("audioTrackAdd", (queue, track) => {
+  console.log(`added ${track.title}`);
+});
+
 app.player.events.on("error", (queue, error) => {
   console.log(error);
 });
