@@ -1,21 +1,45 @@
 import { YoutubeiExtractor } from "discord-player-youtubei";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
+/**
+ * Mendaftarkan YoutubeiExtractor ke dalam instance player.
+ * @param {import('discord-player').Player} player - Instance player utama.
+ */
 export const registerExtractor = async (player) => {
   const cookiesPath = resolve("./cookies.txt");
-  let cookies;
+  let cookies = null;
+
   try {
-    cookies = readFileSync(cookiesPath, "utf-8");
-  } catch {
-    console.warn("cookies.txt tidak ditemukan, lanjut tanpa cookies");
+    // Memeriksa keberadaan file secara eksplisit sebelum membaca
+    if (existsSync(cookiesPath)) {
+      const rawCookies = readFileSync(cookiesPath, "utf-8").trim();
+      if (rawCookies) {
+        cookies = rawCookies;
+        console.log("[Extractor] Berhasil memuat data dari cookies.txt");
+      }
+    } else {
+      console.warn(
+        "[Extractor] cookies.txt tidak ditemukan, menggunakan akses publik.",
+      );
+    }
+  } catch (error) {
+    console.error(
+      "[Extractor] Kesalahan saat membaca file cookie:",
+      error.message,
+    );
   }
 
+  // Registrasi extractor dengan konfigurasi optimal
   await player.extractors.register(YoutubeiExtractor, {
-    cookie: cookies,
+    useDefaultCookies: false, // Menonaktifkan cookie default library jika menggunakan milik sendiri
+    authentication: cookies, // Beberapa versi Youtubei menggunakan properti 'authentication' atau 'cookie'
     streamOptions: {
       useClient: "TV_EMBEDDED",
     },
   });
-  console.log("youtubei loaded");
+
+  console.log(
+    `[Extractor] Youtubei loaded. Status: ${cookies ? "Authenticated" : "Anonymous"}`,
+  );
 };
