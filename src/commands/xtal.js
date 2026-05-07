@@ -47,7 +47,8 @@ export default {
           {
             name: "Route",
             value:
-              `- ${item.upgrade_route}\n- ${item.max_upgrade_route}` || "-",
+              `- ${item.upgrade_route || "tidak ada"}\n- ${item.max_upgrade_route || "tidak ada"}` ||
+              "-",
           },
         ]);
     });
