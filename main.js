@@ -6,7 +6,7 @@ import { Player } from "discord-player";
 
 import { loadCommands, loadEvents } from "./src/utils/loader.js";
 
-import { registerExtractor } from "./src/events/registerExtractor.js";
+import { registerExtractor } from "./src/utils/registerExtractor.js";
 
 dotenv.config();
 
