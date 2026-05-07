@@ -44,6 +44,11 @@ export default {
             name: "Stat",
             value: item.stats || "-",
           },
+          {
+            name: "Route",
+            value:
+              `- ${item.upgrade_route}\n- ${item.max_upgrade_route}` || "-",
+          },
         ]);
     });
 
