@@ -1,5 +1,6 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 
+import { Player } from "discord-player";
 import dotenv from "dotenv";
 
 import { loadCommands } from "./src/utils/loader.js";
@@ -10,7 +11,7 @@ dotenv.config();
 const app = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
-
+app.player = new Player(app);
 app.commands = new Collection();
 
 await loadCommands(app);
