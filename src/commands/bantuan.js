@@ -20,6 +20,8 @@ export default {
           value: `- /itemfilter\n- /buff\n- /bos\n- /xtal\n- /trait\n- /boost`,
         },
       ]);
-    await interaction.EditReply([enm]);
+    await interaction.EditReply({
+      embeds: [enm],
+    });
   },
 };
