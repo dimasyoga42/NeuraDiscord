@@ -22,7 +22,8 @@ export default {
           value:
             "- /xtal\n- /trait\n- /bos\n - /ava\n- /bossdef\n- /bosboost\n- /mt\n- /live",
         },
-      ]);
+      ])
+      .setFooter("Neura Sama");
 
     await interaction.reply({
       embeds: [embed],
