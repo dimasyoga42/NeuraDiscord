@@ -29,6 +29,31 @@ const ITEM_TYPES = [
   "bowgun",
 ];
 
+function formatEffects(effects) {
+  if (!effects) return "-";
+
+  const cleaned = effects
+    .split("|")
+    .map((v) => v.trim())
+    .filter((v) => v && !v.toLowerCase().includes("amount"));
+
+  const priority = [];
+  const normal = [];
+
+  for (const stat of cleaned) {
+    if (stat.toLowerCase().includes("base def")) {
+      priority.push(stat);
+    } else {
+      normal.push(stat);
+    }
+  }
+
+  return [...priority, ...normal]
+    .map((v) => `• ${v}`)
+    .join("\n")
+    .slice(0, 1024);
+}
+
 export default {
   name: "itemfilter",
 
@@ -83,14 +108,19 @@ export default {
 
           const matchedStat =
             effects
-              .split("\n")
+              .split("|")
               .find((line) =>
                 line.toLowerCase().includes(stat.toLowerCase()),
               ) || "stat tidak ditemukan";
 
           return new StringSelectMenuOptionBuilder()
             .setLabel(item.ItemName.slice(0, 100))
-            .setDescription(matchedStat.slice(0, 100))
+            .setDescription(
+              matchedStat
+                .replace(/amount/gi, "")
+                .trim()
+                .slice(0, 100),
+            )
             .setValue(item.ItemName);
         });
 
@@ -199,7 +229,7 @@ export default {
                 },
                 {
                   name: "Effects",
-                  value: (item.Effects || "-").slice(0, 1024),
+                  value: formatEffects(item.Effects),
                 },
                 {
                   name: "Obtained",
