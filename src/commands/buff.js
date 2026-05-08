@@ -156,7 +156,6 @@ export default {
           {
             name: "Code",
             value: data.code || "-",
-            inline: false,
           },
         ])
         .setTimestamp();
