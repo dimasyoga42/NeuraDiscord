@@ -9,10 +9,7 @@ const app = new Client({
 });
 
 app.commands = new Collection();
-app.player = new Player(app, {
-  skipFFmpeg: false,
-  useLegacyFFmpeg: false,
-});
+
 await loadCommands(app);
 await loadEvents(app);
 
