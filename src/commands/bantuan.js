@@ -9,9 +9,9 @@ export default {
 
   async execute(interaction) {
     const data = await axios.get(
-      "https://api.nekosapi.com/v4/images/random?limit=1",
+      "https://api.waifu.im/images?IncludedTags=waifu",
     );
-    const img = data.data;
+    const img = data.data.items;
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
       .setTitle("Menu Neura Sama")
