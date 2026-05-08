@@ -17,7 +17,7 @@ export default {
       option
         .setName("name")
         .setDescription(buffNames.slice(0, 100))
-        .setRequired(true),
+        .setRequired(false),
     ),
 
   async execute(interaction) {
@@ -25,6 +25,33 @@ export default {
       await interaction.deferReply();
 
       const buffname = interaction.options.getString("name");
+
+      if (!buffname) {
+        const { data: buffs, error } = await supabase.from("buff").select("*");
+
+        if (error || !buffs?.length) {
+          return interaction.editReply("buff tidak ditemukan");
+        }
+
+        const emb = new EmbedBuilder()
+          .setColor(color.cyan)
+          .setAuthor({
+            name: "Neura Sama",
+          })
+          .setTitle("Daftar Buff")
+          .addFields(
+            buffs.map((item) => ({
+              name: item.name || "-",
+              value: `Code: ${item.code || "-"}`,
+              inline: true,
+            })),
+          )
+          .setTimestamp();
+
+        return interaction.editReply({
+          embeds: [emb],
+        });
+      }
 
       const { data, error } = await supabase
         .from("buff")
@@ -34,7 +61,7 @@ export default {
         .single();
 
       if (error || !data) {
-        return await interaction.editReply("buff tidak ditemukan");
+        return interaction.editReply("buff tidak ditemukan");
       }
 
       const emb = new EmbedBuilder()
