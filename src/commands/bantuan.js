@@ -1,6 +1,5 @@
+import axios from "axios";
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { NekosAPI } from "nekosapi";
-const neko = new NekosAPI();
 export default {
   name: "bantuan",
 
@@ -9,17 +8,20 @@ export default {
     .setDescription("Lihat semua menu"),
 
   async execute(interaction) {
-    neko.getRandomImage((categories = ["catgirl"])).then((image) => {
-      const embed = new EmbedBuilder()
-        .setColor(0x0099ff)
-        .setTitle("Menu Neura Sama")
-        .setImage(image.url)
-        .setDescription(
-          "- /bantuan (untuk melihat daftar Menu\n- /xtal digunakan untuk melihat stat xtall\n- /buff menampilkan code buff",
-        );
-      interaction.reply({
-        embeds: [embed],
-      });
+    const data = await axios.get(
+      "https://api.nekosapi.com/v4/images/random?limit=1",
+    );
+    const img = data.data;
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("Menu Neura Sama")
+      .setImage(img.url)
+      .setDescription(
+        "- /bantuan (untuk melihat daftar Menu\n- /xtal digunakan untuk melihat stat xtall\n- /buff menampilkan code buff",
+      );
+
+    await interaction.reply({
+      embeds: [embed],
     });
   },
 };
