@@ -12,16 +12,19 @@ import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
 const ITEM_TYPES = [
-  "md",
-  "knuck",
-  "ohs",
+  "Magic Device",
+  "Knuckles",
+  "one sword",
   "bow",
   "dagger",
   "arrow",
-  "hb",
-  "ths",
-  "ring",
-  "add",
+  "Staff",
+  "Halberd",
+  "2 Handed Sword",
+  "1 Handed Sword",
+  "Additional",
+  "Special",
+  "bowgun",
 ];
 
 export default {
