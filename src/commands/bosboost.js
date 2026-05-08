@@ -68,47 +68,28 @@ const scrapeBoostBoss = async () => {
 
   const bosses = [];
 
-  $d("img").each((_, el) => {
-    const src = $d(el).attr("src");
+  $d(".commonArea").each((_, el) => {
+    const text = $d(el).text();
 
-    if (!src) {
-      return;
+    const regex = /Lv(\d+)\s+([^(]+)(?:\(([^)]+)\))?/g;
+
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const level = match[1];
+      const name = match[2]?.trim();
+      const location = match[3]?.trim() || "-";
+
+      if (!name) {
+        continue;
+      }
+
+      bosses.push({
+        level,
+        name,
+        location,
+      });
     }
-
-    if (!src.includes("boss") && !src.includes("event")) {
-      return;
-    }
-
-    let image = src;
-
-    if (src.startsWith("//")) {
-      image = `https:${src}`;
-    } else if (src.startsWith("/")) {
-      image = `${BASE_URL}${src}`;
-    }
-
-    const parentText = $d(el).parent().text().trim();
-
-    const match = parentText.match(/Lv(\d+)\s+([^(]+)(?:\(([^)]+)\))?/);
-
-    if (!match) {
-      return;
-    }
-
-    const level = match[1];
-    const name = match[2]?.trim();
-    const location = match[3]?.trim() || "-";
-
-    if (!name) {
-      return;
-    }
-
-    bosses.push({
-      level,
-      name,
-      location,
-      image,
-    });
   });
 
   const uniqueBosses = bosses.filter(
@@ -141,31 +122,34 @@ export default {
       }
 
       let currentPage = 0;
+      const pageSize = 5;
 
       const generateEmbed = (page) => {
-        const boss = result.bosses[page];
+        const start = page * pageSize;
 
-        return new EmbedBuilder()
+        const end = start + pageSize;
+
+        const currentBosses = result.bosses.slice(start, end);
+
+        const embed = new EmbedBuilder()
           .setColor("#00ffff")
-          .setTitle(`${boss.name}`)
-          .setDescription(`## Boost Boss\n${result.title}`)
-          .addFields([
-            {
-              name: "Level",
-              value: boss.level,
-              inline: true,
-            },
-            {
-              name: "Location",
-              value: boss.location,
-              inline: true,
-            },
-          ])
-          .setImage(boss.image)
+          .setTitle("BOOST BOSS TORAM")
+          .setDescription(result.title)
           .setFooter({
-            text: `Boss ${page + 1} / ${result.bosses.length}`,
+            text: `Page ${page + 1} / ${Math.ceil(
+              result.bosses.length / pageSize,
+            )}`,
           })
           .setTimestamp();
+
+        currentBosses.forEach((boss, index) => {
+          embed.addFields({
+            name: `${start + index + 1}. ${boss.name}`,
+            value: `Level : ${boss.level}\n` + `Location : ${boss.location}`,
+          });
+        });
+
+        return embed;
       };
 
       const generateButtons = (page) => {
@@ -180,7 +164,7 @@ export default {
             .setCustomId("boost_next")
             .setLabel("Next ▶")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === result.bosses.length - 1),
+            .setDisabled((page + 1) * pageSize >= result.bosses.length),
         );
       };
 
