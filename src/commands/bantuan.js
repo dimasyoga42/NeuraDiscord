@@ -16,9 +16,13 @@ export default {
       .setColor(0x0099ff)
       .setTitle("Menu Neura Sama")
       .setThumbnail(img[0].url)
-      .setDescription(
-        "- /bantuan (untuk melihat daftar Menu\n- /xtal digunakan untuk melihat stat xtall\n- /buff menampilkan code buff",
-      );
+      .setFields([
+        {
+          name: "Menu Toram",
+          value:
+            "- /xtal\n- /trait\n- /bos\n - /ava\n- /bossdef\n- /bosboost\n- /mt\n- /live",
+        },
+      ]);
 
     await interaction.reply({
       embeds: [embed],
