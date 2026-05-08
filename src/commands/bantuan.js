@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-
+import { NekosAPI } from "nekosapi";
+const neko = new NekosAPI();
 export default {
   name: "bantuan",
 
@@ -8,13 +9,17 @@ export default {
     .setDescription("Lihat semua menu"),
 
   async execute(interaction) {
-    const embed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle("Menu Neura Sama")
-      .setDescription("- /bantuan\n- /xtal");
-
-    await interaction.reply({
-      embeds: [embed],
+    neko.getRandomImage((categories = ["catgirl"])).then((image) => {
+      const embed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle("Menu Neura Sama")
+        .setImage(image.url)
+        .setDescription(
+          "- /bantuan (untuk melihat daftar Menu\n- /xtal digunakan untuk melihat stat xtall\n- /buff menampilkan code buff",
+        );
+      interaction.reply({
+        embeds: [embed],
+      });
     });
   },
 };

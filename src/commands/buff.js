@@ -5,7 +5,7 @@ import { color } from "../config/color.js";
 
 const { data: buffList } = await supabase.from("buff").select("name");
 
-const buffNames = buffList?.map((item) => item.name).join("\n- ") || "buff";
+const buffNames = buffList?.map((item) => item.name).join(", ") || "buff";
 
 export default {
   name: "buff",
