@@ -28,15 +28,6 @@ export default {
         .setThumbnail(image)
         .addFields([
           {
-            name: "Informasi Pribadi",
-            value: [
-              `> Username: ${user.username}`,
-              `> Global Name: ${user.globalName || "-"}`,
-              `> Display Name: ${interaction.member.displayName}`,
-              `> User ID: ${user.id}`,
-            ].join("\n"),
-          },
-          {
             name: "Menu Toram",
             value: [
               "`/xtal`",
@@ -46,12 +37,7 @@ export default {
               "`/itemfilter`",
               "`/buff`",
             ].join("\n"),
-            inline: true,
-          },
-          {
-            name: "Menu Utility",
-            value: ["`/bantuan`", "`/ping`", "`/userinfo`"].join("\n"),
-            inline: true,
+            inline: false,
           },
         ])
         .setImage(image)
