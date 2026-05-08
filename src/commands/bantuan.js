@@ -16,14 +16,14 @@ export default {
       .setColor(0x0099ff)
       .setTitle("Menu Neura Sama")
       .setThumbnail(img[0].url)
+      .setTimestamp()
       .setFields([
         {
           name: "Menu Toram",
           value:
             "- /xtal\n- /trait\n- /bos\n - /ava\n- /bossdef\n- /bosboost\n- /mt\n- /live",
         },
-      ])
-      .setFooter("Neura Sama");
+      ]);
 
     await interaction.reply({
       embeds: [embed],
