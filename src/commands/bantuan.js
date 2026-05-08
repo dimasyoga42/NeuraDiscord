@@ -1,4 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+
 import { color } from "../config/color.js";
 
 export default {
@@ -9,19 +10,45 @@ export default {
     .setDescription("melihat menu"),
 
   async execute(interaction) {
-    const enm = new EmbedBuilder()
-      .setColor(color.dark)
-      .setTitle("Neura Sama")
-      .setTimestamp()
-      .setDescription("Neura Sama akan selalu membantu anda")
-      .setFields([
-        {
-          name: "Menu Toram",
-          value: `- /itemfilter\n- /buff\n- /bos\n- /xtal\n- /trait\n- /boost`,
-        },
-      ]);
-    await interaction.EditReply({
-      embeds: [enm],
-    });
+    try {
+      await interaction.deferReply();
+
+      const embed = new EmbedBuilder()
+        .setColor(color.dark)
+        .setTitle("Neura Sama")
+        .setDescription("Neura Sama akan selalu membantu anda ✨")
+        .addFields([
+          {
+            name: "Menu Toram",
+            value: [
+              "`/itemfilter`",
+              "`/buff`",
+              "`/bos`",
+              "`/xtal`",
+              "`/trait`",
+              "`/boost`",
+            ].join("\n"),
+          },
+          {
+            name: "Menu Utility",
+            value: ["`/help`"].join("\n"),
+          },
+        ])
+        .setFooter({
+          text: `Requested by ${interaction.user.username}`,
+          iconURL: interaction.user.displayAvatarURL(),
+        })
+        .setTimestamp();
+
+      await interaction.editReply({
+        embeds: [embed],
+      });
+    } catch (err) {
+      console.log(err);
+
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply("terjadi kesalahan");
+      }
+    }
   },
 };
