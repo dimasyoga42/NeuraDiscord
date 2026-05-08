@@ -13,16 +13,4 @@ app.commands = new Collection();
 await loadCommands(app);
 await loadEvents(app);
 
-app.player.events.on("debug", (queue, message) => {
-  console.log(message);
-});
-
-app.player.events.on("error", (queue, error) => {
-  console.log(error);
-});
-
-app.player.events.on("playerError", (queue, error) => {
-  console.log(error);
-});
-
 app.login(process.env.TOKEN);
