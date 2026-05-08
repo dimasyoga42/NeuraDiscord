@@ -1,8 +1,6 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
-import { Player } from "discord-player";
 import { loadCommands, loadEvents } from "./src/utils/loader.js";
-import { registerExtractor } from "./src/utils/registerExtractor.js";
 
 dotenv.config();
 
@@ -15,21 +13,8 @@ app.player = new Player(app, {
   skipFFmpeg: false,
   useLegacyFFmpeg: false,
 });
-await registerExtractor(app.player);
-console.log("extractors loaded:", app.player.extractors.store.size); // harus > 0
-console.log("extractor list:", [...app.player.extractors.store.keys()]);
-
 await loadCommands(app);
 await loadEvents(app);
-
-app.player.events.on("playerStart", (queue, track) => {
-  console.log(`playing ${track.title}`);
-  console.log(`stream url: ${track.url}`);
-});
-
-app.player.events.on("audioTrackAdd", (queue, track) => {
-  console.log(`added ${track.title}`);
-});
 
 app.player.events.on("debug", (queue, message) => {
   console.log(message);
