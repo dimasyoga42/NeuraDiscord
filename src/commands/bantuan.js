@@ -15,7 +15,7 @@ export default {
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
       .setTitle("Menu Neura Sama")
-      .setImage(img.url)
+      .setImage(img[0].url)
       .setDescription(
         "- /bantuan (untuk melihat daftar Menu\n- /xtal digunakan untuk melihat stat xtall\n- /buff menampilkan code buff",
       );
