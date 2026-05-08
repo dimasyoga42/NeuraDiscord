@@ -21,14 +21,12 @@ function buildMenuComponents(data, page) {
   const end = start + PAGE_SIZE;
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
 
-  const options = data
-    .slice(start, end)
-    .map((item) =>
-      new StringSelectMenuOptionBuilder()
-        .setLabel(item.name.slice(0, 100))
-        .setDescription(`lihat xtal ${item.name}`.slice(0, 100))
-        .setValue(item.name.slice(0, 100)),
-    );
+  const options = data.slice(start, end).map((item, i) =>
+    new StringSelectMenuOptionBuilder()
+      .setLabel(item.name.slice(0, 100))
+      .setDescription(`lihat xtal ${item.name}`.slice(0, 100))
+      .setValue(String(start + i)),
+  );
 
   const select = new StringSelectMenuBuilder()
     .setCustomId("xtal_select")
@@ -148,15 +146,10 @@ export default {
 
         // Select menu: show xtal detail
         if (i.isStringSelectMenu()) {
-          const selected = i.values[0];
+          const index = parseInt(i.values[0]);
+          const xtal = data[index];
 
-          const { data: xtal, error: xtalError } = await supabase
-            .from("xtal")
-            .select("*")
-            .eq("name", selected)
-            .single();
-
-          if (xtalError || !xtal) {
+          if (!xtal) {
             return i.reply({
               content: "Xtal tidak ditemukan.",
               ephemeral: true,
@@ -172,7 +165,6 @@ export default {
       } catch (err) {
         console.error("[xtal] Collector error:", err);
 
-        // Safely reply if interaction hasn't been acknowledged
         if (!i.replied && !i.deferred) {
           await i
             .reply({ content: "Terjadi kesalahan.", ephemeral: true })
