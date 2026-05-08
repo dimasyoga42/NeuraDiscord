@@ -3,6 +3,10 @@ import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
+const { data: buffList } = await supabase.from("buff").select("name");
+
+const buffNames = buffList?.map((item) => item.name).join("\n- ") || "buff";
+
 export default {
   name: "buff",
 
@@ -12,7 +16,7 @@ export default {
     .addStringOption((option) =>
       option
         .setName("name")
-        .setDescription("masukan nama buff")
+        .setDescription(buffNames.slice(0, 100))
         .setRequired(true),
     ),
 
