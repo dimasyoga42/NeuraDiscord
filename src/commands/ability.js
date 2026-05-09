@@ -7,15 +7,15 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from "discord.js";
-import { translate } from "@vitalets/google-translate-api";
+
+import translate from "@vitalets/google-translate-api";
+
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
 const STAT_PAGE_SIZE = 3;
-
-// --- Helpers ---
 
 function buildMenuComponents(data, page) {
   const start = page * PAGE_SIZE;
@@ -40,6 +40,7 @@ function buildMenuComponents(data, page) {
       .setLabel("◀ Prev")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
+
     new ButtonBuilder()
       .setCustomId("next_page")
       .setLabel("Next ▶")
@@ -51,21 +52,26 @@ function buildMenuComponents(data, page) {
 }
 
 function parseStatLines(statEffect) {
-  if (!statEffect) return ["-"];
+  if (!statEffect || typeof statEffect !== "string") {
+    return ["-"];
+  }
+
   return statEffect
     .split("\n")
-    .map((l) => l.trim())
+    .map((line) => line.trim())
     .filter(Boolean);
 }
 
 function getStatPage(lines, statPage) {
   const start = statPage * STAT_PAGE_SIZE;
+
   return lines.slice(start, start + STAT_PAGE_SIZE);
 }
 
 function buildTraitEmbed(trait, statPage) {
   const lines = parseStatLines(trait.stat_effect);
-  const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
+  const totalStatPages = Math.max(1, Math.ceil(lines.length / STAT_PAGE_SIZE));
+
   const pageLines = getStatPage(lines, statPage);
 
   return new EmbedBuilder()
@@ -76,7 +82,9 @@ function buildTraitEmbed(trait, statPage) {
       value: pageLines.join("\n").slice(0, 1024) || "-",
       inline: false,
     })
-    .setFooter({ text: "Neura Sama" })
+    .setFooter({
+      text: "Neura Sama",
+    })
     .setTimestamp();
 }
 
@@ -87,11 +95,13 @@ function buildDetailComponents(statPage, totalStatPages) {
         .setCustomId("back_to_list")
         .setLabel("◀ Kembali")
         .setStyle(ButtonStyle.Secondary),
+
       new ButtonBuilder()
         .setCustomId("stat_prev")
         .setLabel("⬅ Stat")
         .setStyle(ButtonStyle.Primary)
         .setDisabled(statPage === 0),
+
       new ButtonBuilder()
         .setCustomId("stat_next")
         .setLabel("Stat ➡")
@@ -105,28 +115,34 @@ function pageContent(page, total) {
   return `Silahkan pilih trait\nPage ${page + 1} / ${total}`;
 }
 
-// --- Command ---
-
 export default {
   name: "trait",
 
   data: new SlashCommandBuilder()
     .setName("trait")
     .setDescription("melihat information trait")
+
     .addStringOption((option) =>
       option
         .setName("name")
         .setDescription("masukan nama trait")
         .setRequired(false),
     )
+
     .addStringOption((option) =>
       option
         .setName("lang")
         .setDescription("bahasa hasil (id/en)")
         .setRequired(false)
         .addChoices(
-          { name: "Indonesia", value: "id" },
-          { name: "English", value: "en" },
+          {
+            name: "Indonesia",
+            value: "id",
+          },
+          {
+            name: "English",
+            value: "en",
+          },
         ),
     ),
 
@@ -137,12 +153,16 @@ export default {
     const lang = interaction.options.getString("lang");
 
     let query = supabase.from("ablityv2").select("name, stat_effect");
-    if (traitName) query = query.ilike("name", `%${traitName}%`);
+
+    if (traitName) {
+      query = query.ilike("name", `%${traitName}%`);
+    }
 
     const { data, error } = await query;
 
     if (error) {
       console.error("[trait] Supabase error:", error);
+
       return interaction.editReply("Terjadi kesalahan saat mengambil data.");
     }
 
@@ -150,15 +170,27 @@ export default {
       return interaction.editReply("Data trait tidak ditemukan.");
     }
 
-    // ✅ Fix: translate stat_effect, simpan ke stat_effect (bukan name)
     let displayData = data;
+
     if (lang === "en") {
       displayData = await Promise.all(
         data.map(async (item) => {
           try {
-            const res = await translate(item.stat_effect, { to: "en" });
-            return { ...item, stat_effect: res.text };
-          } catch {
+            if (!item.stat_effect) {
+              return item;
+            }
+
+            const { text } = await translate(item.stat_effect, {
+              to: "en",
+            });
+
+            return {
+              ...item,
+              stat_effect: text || item.stat_effect,
+            };
+          } catch (err) {
+            console.error(`[translate] gagal translate ${item.name}:`, err);
+
             return item;
           }
         }),
@@ -166,6 +198,7 @@ export default {
     }
 
     const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
+
     let currentPage = 0;
     let currentTrait = null;
     let statPage = 0;
@@ -181,7 +214,10 @@ export default {
 
     collector.on("collect", async (i) => {
       if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: "Ini bukan menu kamu.", ephemeral: true });
+        return i.reply({
+          content: "Ini bukan menu kamu.",
+          ephemeral: true,
+        });
       }
 
       try {
@@ -189,6 +225,7 @@ export default {
           if (i.customId === "back_to_list") {
             currentTrait = null;
             statPage = 0;
+
             return i.update({
               content: pageContent(currentPage, totalPages),
               embeds: [],
@@ -196,8 +233,13 @@ export default {
             });
           }
 
-          if (i.customId === "prev_page") currentPage--;
-          if (i.customId === "next_page") currentPage++;
+          if (i.customId === "prev_page") {
+            currentPage--;
+          }
+
+          if (i.customId === "next_page") {
+            currentPage++;
+          }
 
           if (i.customId === "prev_page" || i.customId === "next_page") {
             return i.update({
@@ -209,11 +251,19 @@ export default {
 
           if (currentTrait) {
             const lines = parseStatLines(currentTrait.stat_effect);
-            const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
 
-            if (i.customId === "stat_prev" && statPage > 0) statPage--;
-            if (i.customId === "stat_next" && statPage < totalStatPages - 1)
+            const totalStatPages = Math.max(
+              1,
+              Math.ceil(lines.length / STAT_PAGE_SIZE),
+            );
+
+            if (i.customId === "stat_prev" && statPage > 0) {
+              statPage--;
+            }
+
+            if (i.customId === "stat_next" && statPage < totalStatPages - 1) {
               statPage++;
+            }
 
             return i.update({
               embeds: [buildTraitEmbed(currentTrait, statPage)],
@@ -224,6 +274,7 @@ export default {
 
         if (i.isStringSelectMenu()) {
           const index = parseInt(i.values[0]);
+
           const trait = displayData[index];
 
           if (!trait) {
@@ -237,7 +288,11 @@ export default {
           statPage = 0;
 
           const lines = parseStatLines(trait.stat_effect);
-          const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
+
+          const totalStatPages = Math.max(
+            1,
+            Math.ceil(lines.length / STAT_PAGE_SIZE),
+          );
 
           return i.update({
             content: "",
@@ -247,16 +302,24 @@ export default {
         }
       } catch (err) {
         console.error("[trait] Collector error:", err);
+
         if (!i.replied && !i.deferred) {
           await i
-            .reply({ content: "Terjadi kesalahan.", ephemeral: true })
+            .reply({
+              content: "Terjadi kesalahan.",
+              ephemeral: true,
+            })
             .catch(() => {});
         }
       }
     });
 
-    collector.on("end", () => {
-      interaction.editReply({ components: [] }).catch(() => {});
+    collector.on("end", async () => {
+      await interaction
+        .editReply({
+          components: [],
+        })
+        .catch(() => {});
     });
   },
 };
