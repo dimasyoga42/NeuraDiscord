@@ -8,7 +8,7 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 
-import { translate } from "@vitalets/google-translate-api";
+import translate from "google-translate-api-x";
 
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
