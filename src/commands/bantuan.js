@@ -86,12 +86,12 @@ async function loadAvaImages() {
   }
 }
 
-function buildEmbed(commands, avaData, page, totalPages) {
-  const start = page * PAGE_SIZE;
+function buildEmbed(commands, avaData, commandPage, imagePage, totalPages) {
+  const start = commandPage * PAGE_SIZE;
 
   const current = commands.slice(start, start + PAGE_SIZE);
 
-  const ava = avaData[page % avaData.length];
+  const ava = avaData[imagePage];
 
   const embed = new EmbedBuilder()
     .setColor(color.dark)
@@ -109,38 +109,48 @@ function buildEmbed(commands, avaData, page, totalPages) {
     )
 
     .setFooter({
-      text: `Page ${page + 1} / ${totalPages} • Total ${commands.length} Commands`,
+      text: ava?.name
+        ? `${ava.name} • Commands ${commandPage + 1}/${totalPages} • Image ${imagePage + 1}/${avaData.length}`
+        : `Commands ${commandPage + 1}/${totalPages}`,
     })
 
     .setTimestamp();
 
   if (ava?.image) {
     embed.setImage(ava.image);
-
-    if (ava.name) {
-      embed.setFooter({
-        text: `${ava.name} • Page ${page + 1} / ${totalPages}`,
-      });
-    }
   }
 
   return embed;
 }
 
-function buildButtons(page, totalPages) {
+function buildButtons(commandPage, totalPages, imagePage, totalImages) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("prev")
-        .setLabel("Prev")
+        .setCustomId("cmd_prev")
+        .setLabel("Command Prev")
         .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === 0),
+        .setDisabled(commandPage === 0),
 
       new ButtonBuilder()
-        .setCustomId("next")
-        .setLabel("Next")
+        .setCustomId("cmd_next")
+        .setLabel("Command Next")
         .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page >= totalPages - 1),
+        .setDisabled(commandPage >= totalPages - 1),
+    ),
+
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("img_prev")
+        .setLabel("Image Prev")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(imagePage === 0),
+
+      new ButtonBuilder()
+        .setCustomId("img_next")
+        .setLabel("Image Next")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(imagePage >= totalImages - 1),
     ),
   ];
 }
@@ -165,14 +175,23 @@ export default {
         return interaction.editReply("command not found");
       }
 
-      let currentPage = 0;
+      let commandPage = 0;
+
+      let imagePage = 0;
 
       const totalPages = Math.ceil(commands.length / PAGE_SIZE);
 
       const msg = await interaction.editReply({
-        embeds: [buildEmbed(commands, avaData, currentPage, totalPages)],
+        embeds: [
+          buildEmbed(commands, avaData, commandPage, imagePage, totalPages),
+        ],
 
-        components: buildButtons(currentPage, totalPages),
+        components: buildButtons(
+          commandPage,
+          totalPages,
+          imagePage,
+          avaData.length,
+        ),
       });
 
       const collector = msg.createMessageComponentCollector({
@@ -190,18 +209,33 @@ export default {
           });
         }
 
-        if (i.customId === "prev") {
-          currentPage--;
+        if (i.customId === "cmd_prev") {
+          commandPage--;
         }
 
-        if (i.customId === "next") {
-          currentPage++;
+        if (i.customId === "cmd_next") {
+          commandPage++;
+        }
+
+        if (i.customId === "img_prev") {
+          imagePage--;
+        }
+
+        if (i.customId === "img_next") {
+          imagePage++;
         }
 
         await i.update({
-          embeds: [buildEmbed(commands, avaData, currentPage, totalPages)],
+          embeds: [
+            buildEmbed(commands, avaData, commandPage, imagePage, totalPages),
+          ],
 
-          components: buildButtons(currentPage, totalPages),
+          components: buildButtons(
+            commandPage,
+            totalPages,
+            imagePage,
+            avaData.length,
+          ),
         });
       });
 
