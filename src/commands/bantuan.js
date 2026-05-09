@@ -8,18 +8,6 @@ import { color } from "../config/color.js";
 
 const COMMANDS_PATH = path.resolve("./src/commands");
 
-function formatCommandName(name) {
-  return `/${name}`;
-}
-
-function formatDescription(description) {
-  if (!description) {
-    return "No description";
-  }
-
-  return description;
-}
-
 async function loadCommands() {
   const files = fs
     .readdirSync(COMMANDS_PATH)
@@ -43,21 +31,25 @@ async function loadCommands() {
 
       const options = command.data.options || [];
 
-      const optionDescriptions =
+      const parameters =
         options.length > 0
           ? options
               .map((opt) => {
-                const required = opt.required ? "required" : "optional";
+                const required = opt.required ? "Required" : "Optional";
 
-                return `• ${opt.name} (${required})\n> ${opt.description}`;
+                return [
+                  `┌ Name : ${opt.name}`,
+                  `├ Type : ${required}`,
+                  `└ Description : ${opt.description}`,
+                ].join("\n");
               })
-              .join("\n")
+              .join("\n\n")
           : "No parameters";
 
       commands.push({
         name: command.data.name,
         description: command.data.description || "No description",
-        options: optionDescriptions,
+        parameters,
       });
     } catch (err) {
       console.log(`[help] failed load ${file}`, err);
@@ -82,7 +74,7 @@ export default {
 
       const embeds = [];
 
-      const chunkSize = 8;
+      const chunkSize = 6;
 
       for (let i = 0; i < commands.length; i += chunkSize) {
         const chunk = commands.slice(i, i + chunkSize);
@@ -92,22 +84,32 @@ export default {
 
           .setTitle("Neura Sama")
 
-          .setDescription("Neura Sama akan selalu membantu anda ✨")
+          .setDescription(
+            [
+              "Command Information Center",
+              `Total Commands : ${commands.length}`,
+            ].join("\n"),
+          )
 
           .addFields(
             chunk.map((cmd) => ({
-              name: `📌 ${formatCommandName(cmd.name)}`,
+              name: `╭───〔 /${cmd.name} 〕`,
 
-              value:
-                `> ${formatDescription(cmd.description)}\n\n` +
-                `**Parameters:**\n${cmd.options}`,
+              value: [
+                `├ Description`,
+                `│ ${cmd.description}`,
+                `│`,
+                `├ Parameters`,
+                `│ ${cmd.parameters.replace(/\n/g, "\n│ ")}`,
+                `╰────────────`,
+              ].join("\n"),
 
               inline: false,
             })),
           )
 
           .setFooter({
-            text: `Total Commands: ${commands.length}`,
+            text: `Requested by ${interaction.user.username}`,
             iconURL: interaction.user.displayAvatarURL(),
           })
 
