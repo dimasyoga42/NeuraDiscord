@@ -13,6 +13,7 @@ import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
+const STAT_PAGE_SIZE = 3; // jumlah stat per halaman di detail
 
 // --- Helpers ---
 
@@ -49,26 +50,58 @@ function buildMenuComponents(data, page) {
   return [new ActionRowBuilder().addComponents(select), buttons];
 }
 
-function buildTraitEmbed(trait) {
-  return new EmbedBuilder()
-    .setColor(color.gold)
-    .setTitle(trait.name ?? "Unknown")
-    .addFields({
-      name: "Stat Effect",
-      value: (trait.stat_effect ?? "-").slice(0, 1024),
-      inline: false,
-    })
-    .setFooter({ text: "Neura Sama" })
-    .setTimestamp();
+// Pecah stat_effect per baris jadi array
+function parseStatLines(statEffect) {
+  if (!statEffect) return ["-"];
+  return statEffect
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 }
 
-function buildDetailComponents() {
+// Ambil slice stat sesuai halaman
+function getStatPage(lines, statPage) {
+  const start = statPage * STAT_PAGE_SIZE;
+  return lines.slice(start, start + STAT_PAGE_SIZE);
+}
+
+function buildTraitEmbed(trait, statPage) {
+  const lines = parseStatLines(trait.stat_effect);
+  const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
+  const pageLines = getStatPage(lines, statPage);
+
+  return (
+    new EmbedBuilder()
+      .setColor(color.gold)
+      // Fix: slice title max 256 karakter
+      .setTitle(trait.name.slice(0, 256))
+      .addFields({
+        name: `Stat Effect (${statPage + 1}/${totalStatPages})`,
+        value: pageLines.join("\n").slice(0, 1024) || "-",
+        inline: false,
+      })
+      .setFooter({ text: "Neura Sama" })
+      .setTimestamp()
+  );
+}
+
+function buildDetailComponents(statPage, totalStatPages) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("back_to_list")
         .setLabel("◀ Kembali")
         .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId("stat_prev")
+        .setLabel("⬅ Stat")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(statPage === 0),
+      new ButtonBuilder()
+        .setCustomId("stat_next")
+        .setLabel("Stat ➡")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(statPage >= totalStatPages - 1),
     ),
   ];
 }
@@ -131,7 +164,7 @@ export default {
             const res = await translate(item.stat_effect, { to: "en" });
             return { ...item, name: res.text };
           } catch {
-            return item; // fallback nama asli kalau translate error
+            return item;
           }
         }),
       );
@@ -139,6 +172,8 @@ export default {
 
     const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
     let currentPage = 0;
+    let currentTrait = null;
+    let statPage = 0;
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
@@ -156,7 +191,10 @@ export default {
 
       try {
         if (i.isButton()) {
+          // Kembali ke list
           if (i.customId === "back_to_list") {
+            currentTrait = null;
+            statPage = 0;
             return i.update({
               content: pageContent(currentPage, totalPages),
               embeds: [],
@@ -164,14 +202,32 @@ export default {
             });
           }
 
+          // Paginasi list trait
           if (i.customId === "prev_page") currentPage--;
           if (i.customId === "next_page") currentPage++;
 
-          return i.update({
-            content: pageContent(currentPage, totalPages),
-            embeds: [],
-            components: buildMenuComponents(displayData, currentPage),
-          });
+          if (i.customId === "prev_page" || i.customId === "next_page") {
+            return i.update({
+              content: pageContent(currentPage, totalPages),
+              embeds: [],
+              components: buildMenuComponents(displayData, currentPage),
+            });
+          }
+
+          // Paginasi stat di detail
+          if (currentTrait) {
+            const lines = parseStatLines(currentTrait.stat_effect);
+            const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
+
+            if (i.customId === "stat_prev" && statPage > 0) statPage--;
+            if (i.customId === "stat_next" && statPage < totalStatPages - 1)
+              statPage++;
+
+            return i.update({
+              embeds: [buildTraitEmbed(currentTrait, statPage)],
+              components: buildDetailComponents(statPage, totalStatPages),
+            });
+          }
         }
 
         if (i.isStringSelectMenu()) {
@@ -185,10 +241,16 @@ export default {
             });
           }
 
+          currentTrait = trait;
+          statPage = 0;
+
+          const lines = parseStatLines(trait.stat_effect);
+          const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
+
           return i.update({
             content: "",
-            embeds: [buildTraitEmbed(trait)],
-            components: buildDetailComponents(),
+            embeds: [buildTraitEmbed(trait, statPage)],
+            components: buildDetailComponents(statPage, totalStatPages),
           });
         }
       } catch (err) {
