@@ -11,6 +11,8 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 
+import translate from "google-translate-api-x";
+
 import { color } from "../config/color.js";
 
 const COMMANDS_PATH = path.resolve("./src/commands");
@@ -40,6 +42,15 @@ async function loadCommands() {
 
       const options = command.data.options || [];
 
+      const translatedDescription = await translate(
+        command.data.description || "No description",
+        {
+          to: "en",
+        },
+      )
+        .then((res) => res.text)
+        .catch(() => command.data.description || "No description");
+
       const params =
         options.length > 0
           ? options
@@ -49,7 +60,9 @@ async function loadCommands() {
 
       commands.push({
         name: command.data.name,
-        description: command.data.description || "No description",
+
+        description: translatedDescription,
+
         usage: `/${command.data.name} ${params}`.trim(),
       });
     } catch (err) {
@@ -73,7 +86,9 @@ function buildEmbed(commands, page, totalPages) {
     .setDescription(
       current
         .map((cmd) =>
-          [`/${cmd.name}`, `> ${cmd.description}`, `> ${cmd.usage}`].join("\n"),
+          [`/${cmd.name}`, `${cmd.description}`, `Usage: ${cmd.usage}`].join(
+            "\n",
+          ),
         )
         .join("\n\n"),
     )
@@ -108,7 +123,7 @@ export default {
 
   data: new SlashCommandBuilder()
     .setName("help")
-    .setDescription("lihat semua command"),
+    .setDescription("view all commands"),
 
   async execute(interaction) {
     try {
@@ -117,7 +132,7 @@ export default {
       const commands = await loadCommands();
 
       if (!commands.length) {
-        return interaction.editReply("command tidak ditemukan");
+        return interaction.editReply("command not found");
       }
 
       let currentPage = 0;
@@ -138,7 +153,7 @@ export default {
       collector.on("collect", async (i) => {
         if (i.user.id !== interaction.user.id) {
           return i.reply({
-            content: "ini bukan menu kamu",
+            content: "this is not your menu",
             ephemeral: true,
           });
         }
@@ -169,7 +184,7 @@ export default {
       console.log(err);
 
       if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("terjadi kesalahan");
+        await interaction.editReply("an error occurred");
       }
     }
   },
