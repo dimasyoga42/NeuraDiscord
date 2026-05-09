@@ -28,7 +28,7 @@ function buildMenuComponents(data, page) {
     new StringSelectMenuOptionBuilder()
       .setLabel(String(item.name || "Unknown").slice(0, 100))
 
-      .setDescription(`lihat regist ${item.name}`.slice(0, 100))
+      .setDescription(`view regist ${item.name}`.slice(0, 100))
 
       .setValue(String(start + i)),
   );
@@ -72,7 +72,7 @@ function getEffectPage(lines, effectPage) {
 
 function buildRegistEmbed(regist, effectPage, translated) {
   const sourceEffect = translated
-    ? regist.effect_id || regist.effect
+    ? regist.effect_en || regist.effect
     : regist.effect;
 
   const lines = parseEffectLines(sourceEffect);
@@ -112,7 +112,7 @@ function buildRegistEmbed(regist, effectPage, translated) {
     )
 
     .setFooter({
-      text: translated ? "Translated to Indonesia" : "Neura Sama",
+      text: translated ? "Translated to English" : "Neura Sama",
     })
 
     .setTimestamp();
@@ -123,7 +123,7 @@ function buildDetailComponents(effectPage, totalEffectPages, translated) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("back_to_list")
-        .setLabel("◀ Kembali")
+        .setLabel("◀ Back")
         .setStyle(ButtonStyle.Secondary),
 
       new ButtonBuilder()
@@ -147,7 +147,7 @@ function buildDetailComponents(effectPage, totalEffectPages, translated) {
 }
 
 function pageContent(page, total) {
-  return `Silahkan pilih regist\nPage ${page + 1} / ${total}`;
+  return `Please select regist\nPage ${page + 1} / ${total}`;
 }
 
 export default {
@@ -155,12 +155,12 @@ export default {
 
   data: new SlashCommandBuilder()
     .setName("regist")
-    .setDescription("melihat information regist")
+    .setDescription("view regist information")
 
     .addStringOption((option) =>
       option
         .setName("name")
-        .setDescription("masukan nama regist")
+        .setDescription("input regist name")
         .setRequired(false),
     ),
 
@@ -182,11 +182,11 @@ export default {
     if (error) {
       console.error("[regist] Supabase error:", error);
 
-      return interaction.editReply("Terjadi kesalahan saat mengambil data.");
+      return interaction.editReply("Failed to retrieve data.");
     }
 
     if (!data?.length) {
-      return interaction.editReply("Data regist tidak ditemukan.");
+      return interaction.editReply("Regist data not found.");
     }
 
     const totalPages = Math.ceil(data.length / PAGE_SIZE);
@@ -209,7 +209,7 @@ export default {
     collector.on("collect", async (i) => {
       if (i.user.id !== interaction.user.id) {
         return i.reply({
-          content: "Ini bukan menu kamu.",
+          content: "This is not your menu.",
           ephemeral: true,
         });
       }
@@ -234,15 +234,15 @@ export default {
             if (!currentRegist) return;
 
             if (!translated) {
-              if (!currentRegist.effect_id) {
+              if (!currentRegist.effect_en) {
                 try {
                   const res = await translate(currentRegist.effect, {
                     to: "en",
                   });
 
-                  currentRegist.effect_id = res.text;
+                  currentRegist.effect_en = res.text;
                 } catch {
-                  currentRegist.effect_id = currentRegist.effect;
+                  currentRegist.effect_en = currentRegist.effect;
                 }
               }
 
@@ -252,7 +252,7 @@ export default {
             }
 
             const lines = parseEffectLines(
-              translated ? currentRegist.effect_id : currentRegist.effect,
+              translated ? currentRegist.effect_en : currentRegist.effect,
             );
 
             const totalEffectPages = Math.max(
@@ -291,7 +291,7 @@ export default {
 
           if (currentRegist) {
             const lines = parseEffectLines(
-              translated ? currentRegist.effect_id : currentRegist.effect,
+              translated ? currentRegist.effect_en : currentRegist.effect,
             );
 
             const totalEffectPages = Math.max(
@@ -329,7 +329,7 @@ export default {
 
           if (!regist) {
             return i.reply({
-              content: "Regist tidak ditemukan.",
+              content: "Regist not found.",
 
               ephemeral: true,
             });
@@ -364,7 +364,7 @@ export default {
         if (!i.replied && !i.deferred) {
           await i
             .reply({
-              content: "Terjadi kesalahan.",
+              content: "An error occurred.",
 
               ephemeral: true,
             })
