@@ -237,7 +237,7 @@ export default {
               if (!currentRegist.effect_id) {
                 try {
                   const res = await translate(currentRegist.effect, {
-                    to: "id",
+                    to: "en",
                   });
 
                   currentRegist.effect_id = res.text;
