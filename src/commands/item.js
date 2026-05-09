@@ -17,7 +17,9 @@ function encodeImageUrl(url) {
     return encodeURI(url)
       .replace(/'/g, "%27")
       .replace(/\[/g, "%5B")
-      .replace(/\]/g, "%5D");
+      .replace(/\]/g, "%5D")
+      .replace(/\(/g, "%28")
+      .replace(/\)/g, "%29");
   } catch {
     return url;
   }
@@ -35,7 +37,14 @@ function formatEffects(effects) {
   const normal = [];
 
   for (const stat of cleaned) {
-    if (stat.toLowerCase().includes("base def")) {
+    const lower = stat.toLowerCase();
+
+    if (
+      lower.includes("base atk") ||
+      lower.includes("base matk") ||
+      lower.includes("base def") ||
+      lower.includes("base stability")
+    ) {
       priority.push(stat);
     } else {
       normal.push(stat);
@@ -48,16 +57,46 @@ function formatEffects(effects) {
     .slice(0, 1024);
 }
 
+function formatList(text) {
+  if (!text || text === "-") {
+    return "• -";
+  }
+
+  return text
+    .split("|")
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((v) => `• ${v}`)
+    .join("\n")
+    .slice(0, 1024);
+}
+
 function createEmbed(item, imageUrl, index, total, imageIndex, imageTotal) {
+  console.log("IMAGE:", imageUrl);
+
   return new EmbedBuilder()
     .setColor(color.cyan)
     .setTitle(item.ItemName || "Unknown Item")
-    .setDescription(
-      `Stat\n${formatEffects(item.Effects)}\n\n` +
-        `Duration\n- ${item.Duration || "-"}\n\n` +
-        `Process\n- ${item.Process || "-"}\n\n` +
-        `Obtained From\n- ${(item.ObtainedFrom || "-").slice(0, 1000)}`,
-    )
+    .addFields([
+      {
+        name: "Stat",
+        value: formatEffects(item.Effects),
+      },
+      {
+        name: "Duration",
+        value: formatList(item.Duration),
+        inline: true,
+      },
+      {
+        name: "Process",
+        value: formatList(item.Process),
+        inline: true,
+      },
+      {
+        name: "Obtained From",
+        value: formatList(item.ObtainedFrom),
+      },
+    ])
     .setImage(imageUrl || undefined)
     .setFooter({
       text:
@@ -112,7 +151,13 @@ export default {
             imageMap[img.name] = [];
           }
 
-          imageMap[img.name].push(encodeImageUrl(img.image_url));
+          let imageUrl = img.image_url;
+
+          if (imageUrl.startsWith("/")) {
+            imageUrl = `https://coryn.club${imageUrl}`;
+          }
+
+          imageMap[img.name].push(encodeImageUrl(imageUrl));
         }
       }
 
@@ -129,7 +174,15 @@ export default {
             if (imgs && imgs.length > 0) {
               imageMap[name] = imgs
                 .filter((img) => img.image_url)
-                .map((img) => encodeImageUrl(img.image_url));
+                .map((img) => {
+                  let imageUrl = img.image_url;
+
+                  if (imageUrl.startsWith("/")) {
+                    imageUrl = `https://coryn.club${imageUrl}`;
+                  }
+
+                  return encodeImageUrl(imageUrl);
+                });
             }
           }),
         );
