@@ -14,12 +14,7 @@ function encodeImageUrl(url) {
   if (!url) return null;
 
   try {
-    return encodeURI(url)
-      .replace(/'/g, "%27")
-      .replace(/\[/g, "%5B")
-      .replace(/\]/g, "%5D")
-      .replace(/\(/g, "%28")
-      .replace(/\)/g, "%29");
+    return encodeURI(url.trim());
   } catch {
     return url;
   }
@@ -37,13 +32,10 @@ function formatEffects(effects) {
   const normal = [];
 
   for (const stat of cleaned) {
-    const lower = stat.toLowerCase();
-
     if (
-      lower.includes("base atk") ||
-      lower.includes("base matk") ||
-      lower.includes("base def") ||
-      lower.includes("base stability")
+      stat.toLowerCase().includes("base def") ||
+      stat.toLowerCase().includes("base atk") ||
+      stat.toLowerCase().includes("base stability")
     ) {
       priority.push(stat);
     } else {
@@ -57,51 +49,28 @@ function formatEffects(effects) {
     .slice(0, 1024);
 }
 
-function formatList(text) {
-  if (!text || text === "-") {
-    return "• -";
-  }
-
-  return text
-    .split("|")
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .map((v) => `• ${v}`)
-    .join("\n")
-    .slice(0, 1024);
-}
-
-function createEmbed(item, imageUrl, index, total, imageIndex, imageTotal) {
-  console.log("IMAGE:", imageUrl);
-
+function createEmbed(
+  item,
+  imageUrl,
+  itemPage,
+  totalItems,
+  imagePage,
+  totalImages,
+) {
   return new EmbedBuilder()
     .setColor(color.cyan)
     .setTitle(item.ItemName || "Unknown Item")
-    .addFields([
-      {
-        name: "Stat",
-        value: formatEffects(item.Effects),
-      },
-      {
-        name: "Duration",
-        value: formatList(item.Duration),
-        inline: true,
-      },
-      {
-        name: "Process",
-        value: formatList(item.Process),
-        inline: true,
-      },
-      {
-        name: "Obtained From",
-        value: formatList(item.ObtainedFrom),
-      },
-    ])
-    .setImage(imageUrl || undefined)
+    .setDescription(
+      `Stat\n${formatEffects(item.Effects)}\n\n` +
+        `Duration\n• ${item.Duration || "-"}\n\n` +
+        `Process\n• ${item.Process || "-"}\n\n` +
+        `Obtained From\n• ${(item.ObtainedFrom || "-").slice(0, 1000)}`,
+    )
+    .setImage(imageUrl || null)
     .setFooter({
       text:
-        `Item ${index + 1}/${total}` +
-        ` • Image ${imageIndex + 1}/${imageTotal}`,
+        `Item ${itemPage + 1}/${totalItems}` +
+        ` • Image ${imagePage + 1}/${totalImages}`,
     })
     .setTimestamp();
 }
@@ -125,92 +94,54 @@ export default {
 
       const query = interaction.options.getString("name");
 
-      const { data, error } = await supabase
+      const { data: items, error } = await supabase
         .from("item_v2")
         .select("*")
         .ilike("ItemName", `%${query}%`);
 
-      if (error || !data || data.length === 0) {
+      if (error || !items || items.length === 0) {
         return await interaction.editReply("item tidak ditemukan");
       }
 
-      const itemNames = data.map((item) => item.ItemName);
+      const itemsWithImages = await Promise.all(
+        items.map(async (item) => {
+          const { data: images } = await supabase
+            .from("appview")
+            .select("image_url")
+            .ilike("name", `%${item.ItemName.split("(")[0].trim()}%`);
 
-      const { data: allImages } = await supabase
-        .from("appview")
-        .select("name, image_url")
-        .in("name", itemNames);
+          const imageList =
+            images
+              ?.map((img) => encodeImageUrl(img.image_url))
+              .filter(Boolean) || [];
 
-      const imageMap = {};
+          return {
+            ...item,
+            images: [...new Set(imageList)],
+          };
+        }),
+      );
 
-      if (allImages) {
-        for (const img of allImages) {
-          if (!img.image_url) continue;
-
-          if (!imageMap[img.name]) {
-            imageMap[img.name] = [];
-          }
-
-          let imageUrl = img.image_url;
-
-          if (imageUrl.startsWith("/")) {
-            imageUrl = `https://coryn.club${imageUrl}`;
-          }
-
-          imageMap[img.name].push(encodeImageUrl(imageUrl));
-        }
-      }
-
-      const missingNames = itemNames.filter((name) => !imageMap[name]);
-
-      if (missingNames.length > 0) {
-        await Promise.all(
-          missingNames.map(async (name) => {
-            const { data: imgs } = await supabase
-              .from("appview")
-              .select("name, image_url")
-              .ilike("name", `%${name}%`);
-
-            if (imgs && imgs.length > 0) {
-              imageMap[name] = imgs
-                .filter((img) => img.image_url)
-                .map((img) => {
-                  let imageUrl = img.image_url;
-
-                  if (imageUrl.startsWith("/")) {
-                    imageUrl = `https://coryn.club${imageUrl}`;
-                  }
-
-                  return encodeImageUrl(imageUrl);
-                });
-            }
-          }),
-        );
-      }
-
-      const itemsWithImages = data.map((item) => ({
-        ...item,
-        images: imageMap[item.ItemName] || [],
-      }));
-
-      let page = 0;
+      let itemPage = 0;
       let imagePage = 0;
 
-      const generateButtons = () => {
-        const currentItem = itemsWithImages[page];
+      const currentItem = () => itemsWithImages[itemPage];
+
+      const buildButtons = () => {
+        const item = currentItem();
 
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("prev_item")
             .setLabel("⬅ Item")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === 0),
+            .setDisabled(itemPage === 0),
 
           new ButtonBuilder()
             .setCustomId("next_item")
             .setLabel("Item ➡")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === itemsWithImages.length - 1),
+            .setDisabled(itemPage >= itemsWithImages.length - 1),
 
           new ButtonBuilder()
             .setCustomId("prev_image")
@@ -223,26 +154,25 @@ export default {
             .setLabel("🖼 ➡")
             .setStyle(ButtonStyle.Primary)
             .setDisabled(
-              currentItem.images.length === 0 ||
-                imagePage === currentItem.images.length - 1,
+              !item.images.length || imagePage >= item.images.length - 1,
             ),
         );
       };
 
-      const firstItem = itemsWithImages[0];
+      const firstItem = currentItem();
 
       const msg = await interaction.editReply({
         embeds: [
           createEmbed(
             firstItem,
-            firstItem.images[0] || undefined,
-            page,
+            firstItem.images[0] || null,
+            itemPage,
             itemsWithImages.length,
             imagePage,
             firstItem.images.length || 1,
           ),
         ],
-        components: [generateButtons()],
+        components: [buildButtons()],
       });
 
       const collector = msg.createMessageComponentCollector({
@@ -260,19 +190,19 @@ export default {
           }
 
           if (btn.customId === "next_item") {
-            page++;
+            itemPage++;
             imagePage = 0;
           }
 
           if (btn.customId === "prev_item") {
-            page--;
+            itemPage--;
             imagePage = 0;
           }
 
-          const currentItem = itemsWithImages[page];
+          const item = currentItem();
 
           if (btn.customId === "next_image") {
-            if (imagePage < currentItem.images.length - 1) {
+            if (imagePage < item.images.length - 1) {
               imagePage++;
             }
           }
@@ -286,15 +216,15 @@ export default {
           await btn.update({
             embeds: [
               createEmbed(
-                currentItem,
-                currentItem.images[imagePage] || undefined,
-                page,
+                item,
+                item.images[imagePage] || null,
+                itemPage,
                 itemsWithImages.length,
                 imagePage,
-                currentItem.images.length || 1,
+                item.images.length || 1,
               ),
             ],
-            components: [generateButtons()],
+            components: [buildButtons()],
           });
         } catch (err) {
           console.log(err);
