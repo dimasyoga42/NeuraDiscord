@@ -156,7 +156,7 @@ export default {
       displayData = await Promise.all(
         data.map(async (item) => {
           try {
-            const res = await translate(item.stat_effect ?? "", { to: "en" });
+            const res = await translate(item.stat_effect, { to: "en" });
             return { ...item, stat_effect: res.text };
           } catch {
             return item;
