@@ -8,6 +8,8 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 
+import { translate } from "@vitalets/google-translate-api";
+
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
@@ -68,8 +70,12 @@ function getEffectPage(lines, effectPage) {
   return lines.slice(start, start + EFFECT_PAGE_SIZE);
 }
 
-function buildRegistEmbed(regist, effectPage) {
-  const lines = parseEffectLines(regist.effect);
+function buildRegistEmbed(regist, effectPage, translated) {
+  const sourceEffect = translated
+    ? regist.effect_id || regist.effect
+    : regist.effect;
+
+  const lines = parseEffectLines(sourceEffect);
 
   const totalEffectPages = Math.max(
     1,
@@ -106,13 +112,13 @@ function buildRegistEmbed(regist, effectPage) {
     )
 
     .setFooter({
-      text: "Neura Sama",
+      text: translated ? "Translated to Indonesia" : "Neura Sama",
     })
 
     .setTimestamp();
 }
 
-function buildDetailComponents(effectPage, totalEffectPages) {
+function buildDetailComponents(effectPage, totalEffectPages, translated) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -131,6 +137,11 @@ function buildDetailComponents(effectPage, totalEffectPages) {
         .setLabel("Effect ➡")
         .setStyle(ButtonStyle.Primary)
         .setDisabled(effectPage >= totalEffectPages - 1),
+
+      new ButtonBuilder()
+        .setCustomId("translate_effect")
+        .setLabel(translated ? "Original" : "Translate")
+        .setStyle(ButtonStyle.Success),
     ),
   ];
 }
@@ -183,6 +194,7 @@ export default {
     let currentPage = 0;
     let currentRegist = null;
     let effectPage = 0;
+    let translated = false;
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
@@ -207,6 +219,7 @@ export default {
           if (i.customId === "back_to_list") {
             currentRegist = null;
             effectPage = 0;
+            translated = false;
 
             return i.update({
               content: pageContent(currentPage, totalPages),
@@ -214,6 +227,47 @@ export default {
               embeds: [],
 
               components: buildMenuComponents(data, currentPage),
+            });
+          }
+
+          if (i.customId === "translate_effect") {
+            if (!currentRegist) return;
+
+            if (!translated) {
+              if (!currentRegist.effect_id) {
+                try {
+                  const res = await translate(currentRegist.effect, {
+                    to: "id",
+                  });
+
+                  currentRegist.effect_id = res.text;
+                } catch {
+                  currentRegist.effect_id = currentRegist.effect;
+                }
+              }
+
+              translated = true;
+            } else {
+              translated = false;
+            }
+
+            const lines = parseEffectLines(
+              translated ? currentRegist.effect_id : currentRegist.effect,
+            );
+
+            const totalEffectPages = Math.max(
+              1,
+              Math.ceil(lines.length / EFFECT_PAGE_SIZE),
+            );
+
+            return i.update({
+              embeds: [buildRegistEmbed(currentRegist, effectPage, translated)],
+
+              components: buildDetailComponents(
+                effectPage,
+                totalEffectPages,
+                translated,
+              ),
             });
           }
 
@@ -236,7 +290,9 @@ export default {
           }
 
           if (currentRegist) {
-            const lines = parseEffectLines(currentRegist.effect);
+            const lines = parseEffectLines(
+              translated ? currentRegist.effect_id : currentRegist.effect,
+            );
 
             const totalEffectPages = Math.max(
               1,
@@ -255,9 +311,13 @@ export default {
             }
 
             return i.update({
-              embeds: [buildRegistEmbed(currentRegist, effectPage)],
+              embeds: [buildRegistEmbed(currentRegist, effectPage, translated)],
 
-              components: buildDetailComponents(effectPage, totalEffectPages),
+              components: buildDetailComponents(
+                effectPage,
+                totalEffectPages,
+                translated,
+              ),
             });
           }
         }
@@ -277,6 +337,7 @@ export default {
 
           currentRegist = regist;
           effectPage = 0;
+          translated = false;
 
           const lines = parseEffectLines(regist.effect);
 
@@ -288,9 +349,13 @@ export default {
           return i.update({
             content: "",
 
-            embeds: [buildRegistEmbed(regist, effectPage)],
+            embeds: [buildRegistEmbed(regist, effectPage, translated)],
 
-            components: buildDetailComponents(effectPage, totalEffectPages),
+            components: buildDetailComponents(
+              effectPage,
+              totalEffectPages,
+              translated,
+            ),
           });
         }
       } catch (err) {
