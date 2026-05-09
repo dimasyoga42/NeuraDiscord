@@ -13,7 +13,7 @@ import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
-const STAT_PAGE_SIZE = 3; // jumlah stat per halaman di detail
+const STAT_PAGE_SIZE = 3;
 
 // --- Helpers ---
 
@@ -50,7 +50,6 @@ function buildMenuComponents(data, page) {
   return [new ActionRowBuilder().addComponents(select), buttons];
 }
 
-// Pecah stat_effect per baris jadi array
 function parseStatLines(statEffect) {
   if (!statEffect) return ["-"];
   return statEffect
@@ -59,7 +58,6 @@ function parseStatLines(statEffect) {
     .filter(Boolean);
 }
 
-// Ambil slice stat sesuai halaman
 function getStatPage(lines, statPage) {
   const start = statPage * STAT_PAGE_SIZE;
   return lines.slice(start, start + STAT_PAGE_SIZE);
@@ -70,19 +68,16 @@ function buildTraitEmbed(trait, statPage) {
   const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
   const pageLines = getStatPage(lines, statPage);
 
-  return (
-    new EmbedBuilder()
-      .setColor(color.gold)
-      // Fix: slice title max 256 karakter
-      .setTitle(trait.name.slice(0, 256))
-      .addFields({
-        name: `Stat Effect (${statPage + 1}/${totalStatPages})`,
-        value: pageLines.join("\n").slice(0, 1024) || "-",
-        inline: false,
-      })
-      .setFooter({ text: "Neura Sama" })
-      .setTimestamp()
-  );
+  return new EmbedBuilder()
+    .setColor(color.gold)
+    .setTitle(trait.name.slice(0, 256))
+    .addFields({
+      name: `Stat Effect (${statPage + 1}/${totalStatPages})`,
+      value: pageLines.join("\n").slice(0, 1024) || "-",
+      inline: false,
+    })
+    .setFooter({ text: "Neura Sama" })
+    .setTimestamp();
 }
 
 function buildDetailComponents(statPage, totalStatPages) {
@@ -155,14 +150,14 @@ export default {
       return interaction.editReply("Data trait tidak ditemukan.");
     }
 
-    // Translate nama trait kalau lang = en
+    // ✅ Fix: translate stat_effect, simpan ke stat_effect (bukan name)
     let displayData = data;
     if (lang === "en") {
       displayData = await Promise.all(
         data.map(async (item) => {
           try {
-            const res = await translate(item.stat_effect, { to: "en" });
-            return { ...item, name: res.text };
+            const res = await translate(item.stat_effect ?? "", { to: "en" });
+            return { ...item, stat_effect: res.text };
           } catch {
             return item;
           }
@@ -191,7 +186,6 @@ export default {
 
       try {
         if (i.isButton()) {
-          // Kembali ke list
           if (i.customId === "back_to_list") {
             currentTrait = null;
             statPage = 0;
@@ -202,7 +196,6 @@ export default {
             });
           }
 
-          // Paginasi list trait
           if (i.customId === "prev_page") currentPage--;
           if (i.customId === "next_page") currentPage++;
 
@@ -214,7 +207,6 @@ export default {
             });
           }
 
-          // Paginasi stat di detail
           if (currentTrait) {
             const lines = parseStatLines(currentTrait.stat_effect);
             const totalStatPages = Math.ceil(lines.length / STAT_PAGE_SIZE);
