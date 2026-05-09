@@ -13,21 +13,7 @@ import {
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
-const ITEM_TYPES = [
-  "Magic Device",
-  "Knuckles",
-  "one sword",
-  "bow",
-  "dagger",
-  "arrow",
-  "Staff",
-  "Halberd",
-  "2 Handed Sword",
-  "1 Handed Sword",
-  "Additional",
-  "Special",
-  "bowgun",
-];
+const PAGE_SIZE = 25;
 
 function formatEffects(effects) {
   if (!effects) return "-";
@@ -59,7 +45,7 @@ export default {
 
   data: new SlashCommandBuilder()
     .setName("itemfilter")
-    .setDescription("filter item berdasarkan stat dan type")
+    .setDescription("filter item berdasarkan stat")
     .addStringOption((option) =>
       option
         .setName("stat")
@@ -73,33 +59,29 @@ export default {
 
       const stat = interaction.options.getString("stat");
 
-      const typeSelect = new StringSelectMenuBuilder()
-        .setCustomId("item_type_select")
-        .setPlaceholder("Pilih type item")
-        .addOptions(
-          ITEM_TYPES.map((type) =>
-            new StringSelectMenuOptionBuilder()
-              .setLabel(type.toUpperCase())
-              .setDescription(`filter ${type}`)
-              .setValue(type),
-          ),
-        );
+      const { data, error } = await supabase
+        .from("item_v2")
+        .select("*")
+        .ilike("Effects", `%${stat}%`)
+        .limit(500);
 
-      const typeRow = new ActionRowBuilder().addComponents(typeSelect);
+      if (error) {
+        console.log(error);
 
-      const msg = await interaction.editReply({
-        content: `Pilih category item\nStat: ${stat}`,
-        components: [typeRow],
-      });
+        return interaction.editReply("terjadi kesalahan saat mengambil data");
+      }
 
+      if (!data || data.length === 0) {
+        return interaction.editReply("item tidak ditemukan");
+      }
+
+      let filteredItems = data;
       let currentPage = 0;
-      let filteredItems = [];
-      let selectedType = null;
 
       const generateComponents = () => {
-        const start = currentPage * 25;
+        const start = currentPage * PAGE_SIZE;
 
-        const end = start + 25;
+        const end = start + PAGE_SIZE;
 
         const sliced = filteredItems.slice(start, end);
 
@@ -126,7 +108,11 @@ export default {
 
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId("item_select")
-          .setPlaceholder(`Page ${currentPage + 1}`)
+          .setPlaceholder(
+            `Page ${currentPage + 1} / ${Math.ceil(
+              filteredItems.length / PAGE_SIZE,
+            )}`,
+          )
           .addOptions(options);
 
         const selectRow = new ActionRowBuilder().addComponents(selectMenu);
@@ -148,13 +134,13 @@ export default {
         return [selectRow, buttonRow];
       };
 
-      const collector = msg.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        time: 120000,
+      const msg = await interaction.editReply({
+        content: `Item ditemukan: ${filteredItems.length}\n` + `Stat: ${stat}`,
+
+        components: generateComponents(),
       });
 
-      const buttonCollector = msg.createMessageComponentCollector({
-        componentType: ComponentType.Button,
+      const collector = msg.createMessageComponentCollector({
         time: 120000,
       });
 
@@ -167,46 +153,28 @@ export default {
             });
           }
 
-          if (i.customId === "item_type_select") {
-            selectedType = i.values[0];
+          if (i.isButton()) {
+            if (!filteredItems.length) return;
 
-            const { data, error } = await supabase
-              .from("item_v2")
-              .select("*")
-              .ilike("Effects", `%${stat}%`)
-              .ilike("Category", `%${selectedType}%`)
-              .limit(100);
-
-            if (error || !data || data.length === 0) {
-              return i.update({
-                content: "item tidak ditemukan",
-                components: [],
-              });
+            if (i.customId === "next_page") {
+              currentPage++;
             }
 
-            filteredItems = data;
-
-            currentPage = 0;
+            if (i.customId === "prev_page" && currentPage > 0) {
+              currentPage--;
+            }
 
             return i.update({
-              content:
-                `Item ditemukan: ${filteredItems.length}\n` +
-                `Type: ${selectedType}\n` +
-                `Stat: ${stat}`,
               components: generateComponents(),
             });
           }
 
-          if (i.customId === "item_select") {
+          if (i.isStringSelectMenu()) {
             const selected = i.values[0];
 
-            const { data: item, error } = await supabase
-              .from("item_v2")
-              .select("*")
-              .eq("ItemName", selected)
-              .single();
+            const item = filteredItems.find((v) => v.ItemName === selected);
 
-            if (error || !item) {
+            if (!item) {
               return i.reply({
                 content: "item tidak ditemukan",
                 flags: MessageFlags.Ephemeral,
@@ -216,6 +184,7 @@ export default {
             const embed = new EmbedBuilder()
               .setColor(color.cyan)
               .setTitle(item.ItemName)
+
               .addFields([
                 {
                   name: "Category",
@@ -240,9 +209,11 @@ export default {
                   value: (item.RecipeMaterials || "-").slice(0, 1024),
                 },
               ])
+
               .setFooter({
                 text: "Neura Sama",
               })
+
               .setTimestamp();
 
             return i.update({
@@ -251,33 +222,6 @@ export default {
               components: [],
             });
           }
-        } catch (err) {
-          console.log(err);
-        }
-      });
-
-      buttonCollector.on("collect", async (i) => {
-        try {
-          if (i.user.id !== interaction.user.id) {
-            return i.reply({
-              content: "ini bukan menu kamu",
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-
-          if (!filteredItems.length) return;
-
-          if (i.customId === "next_page") {
-            currentPage++;
-          }
-
-          if (i.customId === "prev_page") {
-            currentPage--;
-          }
-
-          await i.update({
-            components: generateComponents(),
-          });
         } catch (err) {
           console.log(err);
         }
