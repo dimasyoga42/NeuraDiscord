@@ -15,26 +15,38 @@ import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
-const EFFECT_PAGE_SIZE = 3;
+const STAT_PAGE_SIZE = 3;
+
+async function translateText(text, to = "en") {
+  try {
+    if (!text) return text;
+
+    const result = await translate(text, {
+      to,
+    });
+
+    return result.text || text;
+  } catch (err) {
+    console.error("[translate] error:", err);
+
+    return text;
+  }
+}
 
 function buildMenuComponents(data, page) {
   const start = page * PAGE_SIZE;
-
   const end = start + PAGE_SIZE;
-
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
 
   const options = data.slice(start, end).map((item, i) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(String(item.name || "Unknown").slice(0, 100))
-
-      .setDescription(`view regist ${item.name}`.slice(0, 100))
-
+      .setLabel(item.name.slice(0, 100))
+      .setDescription(`lihat trait ${item.name}`.slice(0, 100))
       .setValue(String(start + i)),
   );
 
   const select = new StringSelectMenuBuilder()
-    .setCustomId("regist_select")
+    .setCustomId("trait_select")
     .setPlaceholder(`Page ${page + 1} / ${totalPages}`)
     .addOptions(options);
 
@@ -55,151 +67,164 @@ function buildMenuComponents(data, page) {
   return [new ActionRowBuilder().addComponents(select), buttons];
 }
 
-function parseEffectLines(effect) {
-  if (!effect) return ["-"];
+function parseStatLines(statEffect) {
+  if (!statEffect || typeof statEffect !== "string") {
+    return ["-"];
+  }
 
-  return effect
+  return statEffect
     .split("\n")
-    .map((v) => v.trim())
+    .map((line) => line.trim())
     .filter(Boolean);
 }
 
-function getEffectPage(lines, effectPage) {
-  const start = effectPage * EFFECT_PAGE_SIZE;
+function getStatPage(lines, statPage) {
+  const start = statPage * STAT_PAGE_SIZE;
 
-  return lines.slice(start, start + EFFECT_PAGE_SIZE);
+  return lines.slice(start, start + STAT_PAGE_SIZE);
 }
 
-function buildRegistEmbed(regist, effectPage, translated) {
-  const sourceEffect = translated
-    ? regist.effect_en || regist.effect
-    : regist.effect;
+function buildTraitEmbed(trait, statPage, translated) {
+  const lines = parseStatLines(trait.stat_effect);
 
-  const lines = parseEffectLines(sourceEffect);
+  const totalStatPages = Math.max(1, Math.ceil(lines.length / STAT_PAGE_SIZE));
 
-  const totalEffectPages = Math.max(
-    1,
-    Math.ceil(lines.length / EFFECT_PAGE_SIZE),
-  );
-
-  const pageLines = getEffectPage(lines, effectPage);
+  const pageLines = getStatPage(lines, statPage);
 
   return new EmbedBuilder()
     .setColor(color.gold)
-
-    .setTitle(String(regist.name || "Unknown").slice(0, 256))
-
-    .addFields(
-      {
-        name: "Max Level",
-        value: String(regist.max_lv || "-"),
-        inline: true,
-      },
-
-      {
-        name: "Level Studied",
-        value: String(regist.levels_studied || "-"),
-        inline: true,
-      },
-
-      {
-        name: `Effect (${effectPage + 1}/${totalEffectPages})`,
-
-        value: pageLines.join("\n").slice(0, 1024) || "-",
-
-        inline: false,
-      },
-    )
-
+    .setTitle(trait.name.slice(0, 256))
+    .addFields({
+      name: `Stat Effect (${statPage + 1}/${totalStatPages})`,
+      value: pageLines.join("\n").slice(0, 1024) || "-",
+      inline: false,
+    })
     .setFooter({
       text: translated ? "Translated to English" : "Neura Sama",
     })
-
     .setTimestamp();
 }
 
-function buildDetailComponents(effectPage, totalEffectPages, translated) {
+function buildDetailComponents(statPage, totalStatPages, translated) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("back_to_list")
-        .setLabel("◀ Back")
+        .setLabel("◀ Kembali")
         .setStyle(ButtonStyle.Secondary),
 
       new ButtonBuilder()
-        .setCustomId("effect_prev")
-        .setLabel("⬅ Effect")
+        .setCustomId("stat_prev")
+        .setLabel("⬅ Stat")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(effectPage === 0),
+        .setDisabled(statPage === 0),
 
       new ButtonBuilder()
-        .setCustomId("effect_next")
-        .setLabel("Effect ➡")
+        .setCustomId("stat_next")
+        .setLabel("Stat ➡")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(effectPage >= totalEffectPages - 1),
+        .setDisabled(statPage >= totalStatPages - 1),
 
       new ButtonBuilder()
-        .setCustomId("translate_effect")
-        .setLabel(translated ? "Original" : "Translate")
+        .setCustomId("translate_trait")
+        .setLabel(translated ? "Bahasa Indonesia" : "Translate EN")
         .setStyle(ButtonStyle.Success),
     ),
   ];
 }
 
 function pageContent(page, total) {
-  return `Please select regist\nPage ${page + 1} / ${total}`;
+  return `Silahkan pilih trait\nPage ${page + 1} / ${total}`;
 }
 
 export default {
-  name: "regist",
+  name: "trait",
 
   data: new SlashCommandBuilder()
-    .setName("regist")
-    .setDescription("view regist information")
+    .setName("trait")
+    .setDescription("melihat information trait")
 
     .addStringOption((option) =>
       option
         .setName("name")
-        .setDescription("input regist name")
+        .setDescription("masukan nama trait")
         .setRequired(false),
+    )
+
+    .addStringOption((option) =>
+      option
+        .setName("lang")
+        .setDescription("bahasa hasil (id/en)")
+        .setRequired(false)
+        .addChoices(
+          {
+            name: "Indonesia",
+            value: "id",
+          },
+          {
+            name: "English",
+            value: "en",
+          },
+        ),
     ),
 
   async execute(interaction) {
     await interaction.deferReply();
 
-    const registName = interaction.options.getString("name");
+    const traitName = interaction.options.getString("name");
+    const lang = interaction.options.getString("lang");
 
-    let query = supabase
-      .from("regist")
-      .select("name, effect, max_lv, levels_studied");
+    let query = supabase.from("ablityv2").select("name, stat_effect");
 
-    if (registName) {
-      query = query.ilike("name", `%${registName}%`);
+    if (traitName) {
+      query = query.ilike("name", `%${traitName}%`);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error("[regist] Supabase error:", error);
+      console.error("[trait] Supabase error:", error);
 
-      return interaction.editReply("Failed to retrieve data.");
+      return interaction.editReply("Terjadi kesalahan saat mengambil data.");
     }
 
     if (!data?.length) {
-      return interaction.editReply("Regist data not found.");
+      return interaction.editReply("Data trait tidak ditemukan.");
     }
 
-    const totalPages = Math.ceil(data.length / PAGE_SIZE);
+    let displayData = data;
+
+    if (lang === "en") {
+      displayData = await Promise.all(
+        data.map(async (item) => {
+          const translated = await translateText(item.stat_effect, "en");
+
+          return {
+            ...item,
+            original_stat_effect: item.stat_effect,
+            stat_effect: translated,
+            translated: true,
+          };
+        }),
+      );
+    } else {
+      displayData = data.map((item) => ({
+        ...item,
+        original_stat_effect: item.stat_effect,
+        translated: false,
+      }));
+    }
+
+    const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
 
     let currentPage = 0;
-    let currentRegist = null;
-    let effectPage = 0;
-    let translated = false;
+    let currentTrait = null;
+    let statPage = 0;
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
 
-      components: buildMenuComponents(data, currentPage),
+      components: buildMenuComponents(displayData, currentPage),
     });
 
     const collector = msg.createMessageComponentCollector({
@@ -209,7 +234,7 @@ export default {
     collector.on("collect", async (i) => {
       if (i.user.id !== interaction.user.id) {
         return i.reply({
-          content: "This is not your menu.",
+          content: "Ini bukan menu kamu.",
           ephemeral: true,
         });
       }
@@ -217,57 +242,15 @@ export default {
       try {
         if (i.isButton()) {
           if (i.customId === "back_to_list") {
-            currentRegist = null;
-            effectPage = 0;
-            translated = false;
+            currentTrait = null;
+            statPage = 0;
 
             return i.update({
               content: pageContent(currentPage, totalPages),
 
               embeds: [],
 
-              components: buildMenuComponents(data, currentPage),
-            });
-          }
-
-          if (i.customId === "translate_effect") {
-            if (!currentRegist) return;
-
-            if (!translated) {
-              if (!currentRegist.effect_en) {
-                try {
-                  const res = await translate(currentRegist.effect, {
-                    to: "en",
-                  });
-
-                  currentRegist.effect_en = res.text;
-                } catch {
-                  currentRegist.effect_en = currentRegist.effect;
-                }
-              }
-
-              translated = true;
-            } else {
-              translated = false;
-            }
-
-            const lines = parseEffectLines(
-              translated ? currentRegist.effect_en : currentRegist.effect,
-            );
-
-            const totalEffectPages = Math.max(
-              1,
-              Math.ceil(lines.length / EFFECT_PAGE_SIZE),
-            );
-
-            return i.update({
-              embeds: [buildRegistEmbed(currentRegist, effectPage, translated)],
-
-              components: buildDetailComponents(
-                effectPage,
-                totalEffectPages,
-                translated,
-              ),
+              components: buildMenuComponents(displayData, currentPage),
             });
           }
 
@@ -285,38 +268,83 @@ export default {
 
               embeds: [],
 
-              components: buildMenuComponents(data, currentPage),
+              components: buildMenuComponents(displayData, currentPage),
             });
           }
 
-          if (currentRegist) {
-            const lines = parseEffectLines(
-              translated ? currentRegist.effect_en : currentRegist.effect,
-            );
+          if (i.customId === "translate_trait" && currentTrait) {
+            if (!currentTrait.translated) {
+              const translated = await translateText(
+                currentTrait.stat_effect,
+                "en",
+              );
 
-            const totalEffectPages = Math.max(
-              1,
-              Math.ceil(lines.length / EFFECT_PAGE_SIZE),
-            );
-
-            if (i.customId === "effect_prev" && effectPage > 0) {
-              effectPage--;
+              currentTrait = {
+                ...currentTrait,
+                stat_effect: translated,
+                translated: true,
+              };
+            } else {
+              currentTrait = {
+                ...currentTrait,
+                stat_effect: currentTrait.original_stat_effect,
+                translated: false,
+              };
             }
 
-            if (
-              i.customId === "effect_next" &&
-              effectPage < totalEffectPages - 1
-            ) {
-              effectPage++;
+            const lines = parseStatLines(currentTrait.stat_effect);
+
+            const totalStatPages = Math.max(
+              1,
+              Math.ceil(lines.length / STAT_PAGE_SIZE),
+            );
+
+            return i.update({
+              embeds: [
+                buildTraitEmbed(
+                  currentTrait,
+                  statPage,
+                  currentTrait.translated,
+                ),
+              ],
+
+              components: buildDetailComponents(
+                statPage,
+                totalStatPages,
+                currentTrait.translated,
+              ),
+            });
+          }
+
+          if (currentTrait) {
+            const lines = parseStatLines(currentTrait.stat_effect);
+
+            const totalStatPages = Math.max(
+              1,
+              Math.ceil(lines.length / STAT_PAGE_SIZE),
+            );
+
+            if (i.customId === "stat_prev" && statPage > 0) {
+              statPage--;
+            }
+
+            if (i.customId === "stat_next" && statPage < totalStatPages - 1) {
+              statPage++;
             }
 
             return i.update({
-              embeds: [buildRegistEmbed(currentRegist, effectPage, translated)],
+              embeds: [
+                buildTraitEmbed(
+                  currentTrait,
+                  statPage,
+                  currentTrait.translated,
+                ),
+              ],
 
               components: buildDetailComponents(
-                effectPage,
-                totalEffectPages,
-                translated,
+                statPage,
+                totalStatPages,
+                currentTrait.translated,
               ),
             });
           }
@@ -325,47 +353,44 @@ export default {
         if (i.isStringSelectMenu()) {
           const index = Number(i.values[0]);
 
-          const regist = data[index];
+          const trait = displayData[index];
 
-          if (!regist) {
+          if (!trait) {
             return i.reply({
-              content: "Regist not found.",
-
+              content: "Trait tidak ditemukan.",
               ephemeral: true,
             });
           }
 
-          currentRegist = regist;
-          effectPage = 0;
-          translated = false;
+          currentTrait = trait;
+          statPage = 0;
 
-          const lines = parseEffectLines(regist.effect);
+          const lines = parseStatLines(trait.stat_effect);
 
-          const totalEffectPages = Math.max(
+          const totalStatPages = Math.max(
             1,
-            Math.ceil(lines.length / EFFECT_PAGE_SIZE),
+            Math.ceil(lines.length / STAT_PAGE_SIZE),
           );
 
           return i.update({
             content: "",
 
-            embeds: [buildRegistEmbed(regist, effectPage, translated)],
+            embeds: [buildTraitEmbed(trait, statPage, trait.translated)],
 
             components: buildDetailComponents(
-              effectPage,
-              totalEffectPages,
-              translated,
+              statPage,
+              totalStatPages,
+              trait.translated,
             ),
           });
         }
       } catch (err) {
-        console.error("[regist] Collector error:", err);
+        console.error("[trait] Collector error:", err);
 
         if (!i.replied && !i.deferred) {
           await i
             .reply({
-              content: "An error occurred.",
-
+              content: "Terjadi kesalahan.",
               ephemeral: true,
             })
             .catch(() => {});
