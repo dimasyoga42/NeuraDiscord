@@ -47,6 +47,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("itemfilter")
     .setDescription("filter item berdasarkan stat")
+
     .addStringOption((option) =>
       option
         .setName("stat")
@@ -121,9 +122,11 @@ export default {
                 line.toLowerCase().includes(stat.toLowerCase()),
               ) || "stat tidak ditemukan";
 
+          const realIndex = start + index;
+
           return new StringSelectMenuOptionBuilder()
             .setLabel(
-              String(item.ItemName || `Item ${index + 1}`).slice(0, 100),
+              String(item.ItemName || `Item ${realIndex + 1}`).slice(0, 100),
             )
 
             .setDescription(
@@ -133,7 +136,7 @@ export default {
                 .slice(0, 100) || "tidak ada stat",
             )
 
-            .setValue(String(item.ItemName || `item_${index}`).slice(0, 100));
+            .setValue(String(realIndex));
         });
 
         const selectMenu = new StringSelectMenuBuilder()
@@ -171,6 +174,12 @@ export default {
 
       const collector = msg.createMessageComponentCollector({
         time: COLLECTOR_TIMEOUT,
+        componentType: ComponentType.Button,
+      });
+
+      const selectCollector = msg.createMessageComponentCollector({
+        time: COLLECTOR_TIMEOUT,
+        componentType: ComponentType.StringSelect,
       });
 
       collector.on("collect", async (i) => {
@@ -178,80 +187,22 @@ export default {
           if (i.user.id !== interaction.user.id) {
             return i.reply({
               content: "ini bukan menu kamu",
+
               flags: MessageFlags.Ephemeral,
             });
           }
 
-          if (i.isButton()) {
-            if (i.customId === "next_page") {
-              currentPage++;
-            }
-
-            if (i.customId === "prev_page" && currentPage > 0) {
-              currentPage--;
-            }
-
-            return i.update({
-              components: generateComponents(),
-            });
+          if (i.customId === "next_page") {
+            currentPage++;
           }
 
-          if (i.isStringSelectMenu()) {
-            const selected = i.values[0];
-
-            const item = filteredItems.find((v) => v.ItemName === selected);
-
-            if (!item) {
-              return i.reply({
-                content: "item tidak ditemukan",
-                flags: MessageFlags.Ephemeral,
-              });
-            }
-
-            const embed = new EmbedBuilder()
-              .setColor(color.cyan)
-
-              .setTitle(item.ItemName || "Unknown Item")
-
-              .addFields([
-                {
-                  name: "Category",
-                  value: item.Category || "-",
-                  inline: true,
-                },
-                {
-                  name: "Price",
-                  value: item.SellPrice || "-",
-                  inline: true,
-                },
-                {
-                  name: "Effects",
-                  value: formatEffects(item.Effects),
-                },
-                {
-                  name: "Obtained",
-                  value: String(item.ObtainedFrom || "-").slice(0, 1024),
-                },
-                {
-                  name: "Recipe",
-                  value: String(item.RecipeMaterials || "-").slice(0, 1024),
-                },
-              ])
-
-              .setFooter({
-                text: "Neura Sama",
-              })
-
-              .setTimestamp();
-
-            return i.update({
-              content: "",
-
-              embeds: [embed],
-
-              components: [],
-            });
+          if (i.customId === "prev_page" && currentPage > 0) {
+            currentPage--;
           }
+
+          return i.update({
+            components: generateComponents(),
+          });
         } catch (err) {
           console.log(err);
 
@@ -259,6 +210,7 @@ export default {
             await i
               .reply({
                 content: "terjadi kesalahan",
+
                 flags: MessageFlags.Ephemeral,
               })
               .catch(() => {});
@@ -266,13 +218,95 @@ export default {
         }
       });
 
-      collector.on("end", async () => {
+      selectCollector.on("collect", async (i) => {
+        try {
+          if (i.user.id !== interaction.user.id) {
+            return i.reply({
+              content: "ini bukan menu kamu",
+
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+
+          const selectedIndex = Number(i.values[0]);
+
+          const item = filteredItems[selectedIndex];
+
+          if (!item) {
+            return i.reply({
+              content: "item tidak ditemukan",
+
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+
+          const embed = new EmbedBuilder()
+            .setColor(color.cyan)
+
+            .setTitle(item.ItemName || "Unknown Item")
+
+            .addFields([
+              {
+                name: "Category",
+                value: item.Category || "-",
+                inline: true,
+              },
+              {
+                name: "Price",
+                value: item.SellPrice || "-",
+                inline: true,
+              },
+              {
+                name: "Effects",
+                value: formatEffects(item.Effects),
+              },
+              {
+                name: "Obtained",
+                value: String(item.ObtainedFrom || "-").slice(0, 1024),
+              },
+              {
+                name: "Recipe",
+                value: String(item.RecipeMaterials || "-").slice(0, 1024),
+              },
+            ])
+
+            .setFooter({
+              text: "Neura Sama",
+            })
+
+            .setTimestamp();
+
+          return i.update({
+            content: "",
+            embeds: [embed],
+            components: [],
+          });
+        } catch (err) {
+          console.log(err);
+
+          if (!i.replied && !i.deferred) {
+            await i
+              .reply({
+                content: "terjadi kesalahan",
+
+                flags: MessageFlags.Ephemeral,
+              })
+              .catch(() => {});
+          }
+        }
+      });
+
+      const endCollector = async () => {
         try {
           await interaction.editReply({
             components: [],
           });
         } catch {}
-      });
+      };
+
+      collector.on("end", endCollector);
+
+      selectCollector.on("end", endCollector);
     } catch (err) {
       console.log(err);
 
