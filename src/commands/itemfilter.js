@@ -14,6 +14,7 @@ import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
+const COLLECTOR_TIMEOUT = 120000;
 
 function formatEffects(effects) {
   if (!effects) return "-";
@@ -79,13 +80,38 @@ export default {
       let currentPage = 0;
 
       const generateComponents = () => {
+        const totalPages = Math.max(
+          1,
+          Math.ceil(filteredItems.length / PAGE_SIZE),
+        );
+
+        if (currentPage >= totalPages) {
+          currentPage = totalPages - 1;
+        }
+
+        if (currentPage < 0) {
+          currentPage = 0;
+        }
+
         const start = currentPage * PAGE_SIZE;
 
         const end = start + PAGE_SIZE;
 
         const sliced = filteredItems.slice(start, end);
 
-        const options = sliced.map((item) => {
+        if (!sliced.length) {
+          return [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId("empty")
+                .setLabel("Tidak ada item")
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(true),
+            ),
+          ];
+        }
+
+        const options = sliced.map((item, index) => {
           const effects = item.Effects || "-";
 
           const matchedStat =
@@ -96,23 +122,23 @@ export default {
               ) || "stat tidak ditemukan";
 
           return new StringSelectMenuOptionBuilder()
-            .setLabel(item.ItemName.slice(0, 100))
+            .setLabel(
+              String(item.ItemName || `Item ${index + 1}`).slice(0, 100),
+            )
+
             .setDescription(
               matchedStat
                 .replace(/amount/gi, "")
                 .trim()
-                .slice(0, 100),
+                .slice(0, 100) || "tidak ada stat",
             )
-            .setValue(item.ItemName);
+
+            .setValue(String(item.ItemName || `item_${index}`).slice(0, 100));
         });
 
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId("item_select")
-          .setPlaceholder(
-            `Page ${currentPage + 1} / ${Math.ceil(
-              filteredItems.length / PAGE_SIZE,
-            )}`,
-          )
+          .setPlaceholder(`Page ${currentPage + 1} / ${totalPages}`)
           .addOptions(options);
 
         const selectRow = new ActionRowBuilder().addComponents(selectMenu);
@@ -128,7 +154,10 @@ export default {
             .setCustomId("next_page")
             .setLabel("Next ▶")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(end >= filteredItems.length),
+            .setDisabled(
+              currentPage >= totalPages - 1 ||
+                filteredItems.length <= PAGE_SIZE,
+            ),
         );
 
         return [selectRow, buttonRow];
@@ -141,7 +170,7 @@ export default {
       });
 
       const collector = msg.createMessageComponentCollector({
-        time: 120000,
+        time: COLLECTOR_TIMEOUT,
       });
 
       collector.on("collect", async (i) => {
@@ -154,8 +183,6 @@ export default {
           }
 
           if (i.isButton()) {
-            if (!filteredItems.length) return;
-
             if (i.customId === "next_page") {
               currentPage++;
             }
@@ -183,7 +210,8 @@ export default {
 
             const embed = new EmbedBuilder()
               .setColor(color.cyan)
-              .setTitle(item.ItemName)
+
+              .setTitle(item.ItemName || "Unknown Item")
 
               .addFields([
                 {
@@ -202,11 +230,11 @@ export default {
                 },
                 {
                   name: "Obtained",
-                  value: (item.ObtainedFrom || "-").slice(0, 1024),
+                  value: String(item.ObtainedFrom || "-").slice(0, 1024),
                 },
                 {
                   name: "Recipe",
-                  value: (item.RecipeMaterials || "-").slice(0, 1024),
+                  value: String(item.RecipeMaterials || "-").slice(0, 1024),
                 },
               ])
 
@@ -218,12 +246,23 @@ export default {
 
             return i.update({
               content: "",
+
               embeds: [embed],
+
               components: [],
             });
           }
         } catch (err) {
           console.log(err);
+
+          if (!i.replied && !i.deferred) {
+            await i
+              .reply({
+                content: "terjadi kesalahan",
+                flags: MessageFlags.Ephemeral,
+              })
+              .catch(() => {});
+          }
         }
       });
 
