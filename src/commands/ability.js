@@ -15,20 +15,17 @@ import { color } from "../config/color.js";
 
 const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
-const STAT_PAGE_SIZE = 3;
+const EFFECT_PAGE_SIZE = 3;
 
 async function translateText(text, to = "en") {
   try {
     if (!text) return text;
 
-    const result = await translate(text, {
-      to,
-    });
+    const result = await translate(text, { to });
 
     return result.text || text;
   } catch (err) {
     console.error("[translate] error:", err);
-
     return text;
   }
 }
@@ -40,13 +37,13 @@ function buildMenuComponents(data, page) {
 
   const options = data.slice(start, end).map((item, i) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(item.name.slice(0, 100))
-      .setDescription(`lihat trait ${item.name}`.slice(0, 100))
+      .setLabel(String(item.name || "Unknown").slice(0, 100))
+      .setDescription(`lihat regist ${item.name}`.slice(0, 100))
       .setValue(String(start + i)),
   );
 
   const select = new StringSelectMenuBuilder()
-    .setCustomId("trait_select")
+    .setCustomId("regist_select")
     .setPlaceholder(`Page ${page + 1} / ${totalPages}`)
     .addOptions(options);
 
@@ -67,45 +64,57 @@ function buildMenuComponents(data, page) {
   return [new ActionRowBuilder().addComponents(select), buttons];
 }
 
-function parseStatLines(statEffect) {
-  if (!statEffect || typeof statEffect !== "string") {
-    return ["-"];
-  }
+function parseEffectLines(effect) {
+  if (!effect) return ["-"];
 
-  return statEffect
+  return effect
     .split("\n")
-    .map((line) => line.trim())
+    .map((v) => v.trim())
     .filter(Boolean);
 }
 
-function getStatPage(lines, statPage) {
-  const start = statPage * STAT_PAGE_SIZE;
-
-  return lines.slice(start, start + STAT_PAGE_SIZE);
+function getEffectPage(lines, effectPage) {
+  const start = effectPage * EFFECT_PAGE_SIZE;
+  return lines.slice(start, start + EFFECT_PAGE_SIZE);
 }
 
-function buildTraitEmbed(trait, statPage, translated) {
-  const lines = parseStatLines(trait.stat_effect);
+function buildRegistEmbed(regist, effectPage) {
+  const lines = parseEffectLines(regist.effect);
 
-  const totalStatPages = Math.max(1, Math.ceil(lines.length / STAT_PAGE_SIZE));
+  const totalEffectPages = Math.max(
+    1,
+    Math.ceil(lines.length / EFFECT_PAGE_SIZE),
+  );
 
-  const pageLines = getStatPage(lines, statPage);
+  const pageLines = getEffectPage(lines, effectPage);
 
   return new EmbedBuilder()
     .setColor(color.gold)
-    .setTitle(trait.name.slice(0, 256))
-    .addFields({
-      name: `Stat Effect (${statPage + 1}/${totalStatPages})`,
-      value: pageLines.join("\n").slice(0, 1024) || "-",
-      inline: false,
-    })
+    .setTitle(String(regist.name || "Unknown").slice(0, 256))
+    .addFields(
+      {
+        name: "Max Level",
+        value: String(regist.max_lv || "-"),
+        inline: true,
+      },
+      {
+        name: "Level Studied",
+        value: String(regist.levels_studied || "-"),
+        inline: true,
+      },
+      {
+        name: `Effect (${effectPage + 1}/${totalEffectPages})`,
+        value: pageLines.join("\n").slice(0, 1024) || "-",
+        inline: false,
+      },
+    )
     .setFooter({
-      text: translated ? "Translated to English" : "Neura Sama",
+      text: regist.translated ? "Translated to English" : "Neura Sama",
     })
     .setTimestamp();
 }
 
-function buildDetailComponents(statPage, totalStatPages, translated) {
+function buildDetailComponents(effectPage, totalEffectPages, translated) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -114,19 +123,19 @@ function buildDetailComponents(statPage, totalStatPages, translated) {
         .setStyle(ButtonStyle.Secondary),
 
       new ButtonBuilder()
-        .setCustomId("stat_prev")
-        .setLabel("⬅ Stat")
+        .setCustomId("effect_prev")
+        .setLabel("⬅ Effect")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(statPage === 0),
+        .setDisabled(effectPage === 0),
 
       new ButtonBuilder()
-        .setCustomId("stat_next")
-        .setLabel("Stat ➡")
+        .setCustomId("effect_next")
+        .setLabel("Effect ➡")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(statPage >= totalStatPages - 1),
+        .setDisabled(effectPage >= totalEffectPages - 1),
 
       new ButtonBuilder()
-        .setCustomId("translate_trait")
+        .setCustomId("translate_regist")
         .setLabel(translated ? "Bahasa Indonesia" : "Translate EN")
         .setStyle(ButtonStyle.Success),
     ),
@@ -134,62 +143,55 @@ function buildDetailComponents(statPage, totalStatPages, translated) {
 }
 
 function pageContent(page, total) {
-  return `Silahkan pilih trait\nPage ${page + 1} / ${total}`;
+  return `Silahkan pilih regist\nPage ${page + 1} / ${total}`;
 }
 
 export default {
-  name: "trait",
+  name: "regist",
 
   data: new SlashCommandBuilder()
-    .setName("trait")
-    .setDescription("melihat information trait")
-
+    .setName("regist")
+    .setDescription("melihat information regist")
     .addStringOption((option) =>
       option
         .setName("name")
-        .setDescription("masukan nama trait")
+        .setDescription("masukan nama regist")
         .setRequired(false),
     )
-
     .addStringOption((option) =>
       option
         .setName("lang")
         .setDescription("bahasa hasil (id/en)")
         .setRequired(false)
         .addChoices(
-          {
-            name: "Indonesia",
-            value: "id",
-          },
-          {
-            name: "English",
-            value: "en",
-          },
+          { name: "Indonesia", value: "id" },
+          { name: "English", value: "en" },
         ),
     ),
 
   async execute(interaction) {
     await interaction.deferReply();
 
-    const traitName = interaction.options.getString("name");
+    const registName = interaction.options.getString("name");
     const lang = interaction.options.getString("lang");
 
-    let query = supabase.from("ablityv2").select("name, stat_effect");
+    let query = supabase
+      .from("regist")
+      .select("name, effect, max_lv, levels_studied");
 
-    if (traitName) {
-      query = query.ilike("name", `%${traitName}%`);
+    if (registName) {
+      query = query.ilike("name", `%${registName}%`);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error("[trait] Supabase error:", error);
-
+      console.error("[regist] Supabase error:", error);
       return interaction.editReply("Terjadi kesalahan saat mengambil data.");
     }
 
     if (!data?.length) {
-      return interaction.editReply("Data trait tidak ditemukan.");
+      return interaction.editReply("Data regist tidak ditemukan.");
     }
 
     let displayData = data;
@@ -197,12 +199,12 @@ export default {
     if (lang === "en") {
       displayData = await Promise.all(
         data.map(async (item) => {
-          const translated = await translateText(item.stat_effect, "en");
+          const translated = await translateText(item.effect, "en");
 
           return {
             ...item,
-            original_stat_effect: item.stat_effect,
-            stat_effect: translated,
+            original_effect: item.effect,
+            effect: translated,
             translated: true,
           };
         }),
@@ -210,7 +212,7 @@ export default {
     } else {
       displayData = data.map((item) => ({
         ...item,
-        original_stat_effect: item.stat_effect,
+        original_effect: item.effect,
         translated: false,
       }));
     }
@@ -218,12 +220,11 @@ export default {
     const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
 
     let currentPage = 0;
-    let currentTrait = null;
-    let statPage = 0;
+    let currentRegist = null;
+    let effectPage = 0;
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
-
       components: buildMenuComponents(displayData, currentPage),
     });
 
@@ -242,109 +243,83 @@ export default {
       try {
         if (i.isButton()) {
           if (i.customId === "back_to_list") {
-            currentTrait = null;
-            statPage = 0;
+            currentRegist = null;
+            effectPage = 0;
 
             return i.update({
               content: pageContent(currentPage, totalPages),
-
               embeds: [],
-
               components: buildMenuComponents(displayData, currentPage),
             });
           }
 
-          if (i.customId === "prev_page") {
-            currentPage--;
-          }
-
-          if (i.customId === "next_page") {
-            currentPage++;
-          }
+          if (i.customId === "prev_page") currentPage--;
+          if (i.customId === "next_page") currentPage++;
 
           if (i.customId === "prev_page" || i.customId === "next_page") {
             return i.update({
               content: pageContent(currentPage, totalPages),
-
               embeds: [],
-
               components: buildMenuComponents(displayData, currentPage),
             });
           }
 
-          if (i.customId === "translate_trait" && currentTrait) {
-            if (!currentTrait.translated) {
+          if (i.customId === "translate_regist" && currentRegist) {
+            if (!currentRegist.translated) {
               const translated = await translateText(
-                currentTrait.stat_effect,
+                currentRegist.effect,
                 "en",
               );
 
-              currentTrait = {
-                ...currentTrait,
-                stat_effect: translated,
+              currentRegist = {
+                ...currentRegist,
+                effect: translated,
                 translated: true,
               };
             } else {
-              currentTrait = {
-                ...currentTrait,
-                stat_effect: currentTrait.original_stat_effect,
+              currentRegist = {
+                ...currentRegist,
+                effect: currentRegist.original_effect,
                 translated: false,
               };
             }
 
-            const lines = parseStatLines(currentTrait.stat_effect);
-
-            const totalStatPages = Math.max(
+            const lines = parseEffectLines(currentRegist.effect);
+            const totalEffectPages = Math.max(
               1,
-              Math.ceil(lines.length / STAT_PAGE_SIZE),
+              Math.ceil(lines.length / EFFECT_PAGE_SIZE),
             );
 
             return i.update({
-              embeds: [
-                buildTraitEmbed(
-                  currentTrait,
-                  statPage,
-                  currentTrait.translated,
-                ),
-              ],
-
+              embeds: [buildRegistEmbed(currentRegist, effectPage)],
               components: buildDetailComponents(
-                statPage,
-                totalStatPages,
-                currentTrait.translated,
+                effectPage,
+                totalEffectPages,
+                currentRegist.translated,
               ),
             });
           }
 
-          if (currentTrait) {
-            const lines = parseStatLines(currentTrait.stat_effect);
-
-            const totalStatPages = Math.max(
+          if (currentRegist) {
+            const lines = parseEffectLines(currentRegist.effect);
+            const totalEffectPages = Math.max(
               1,
-              Math.ceil(lines.length / STAT_PAGE_SIZE),
+              Math.ceil(lines.length / EFFECT_PAGE_SIZE),
             );
 
-            if (i.customId === "stat_prev" && statPage > 0) {
-              statPage--;
-            }
-
-            if (i.customId === "stat_next" && statPage < totalStatPages - 1) {
-              statPage++;
-            }
+            if (i.customId === "effect_prev" && effectPage > 0) effectPage--;
+            if (
+              i.customId === "effect_next" &&
+              effectPage < totalEffectPages - 1
+            )
+              effectPage++;
 
             return i.update({
-              embeds: [
-                buildTraitEmbed(
-                  currentTrait,
-                  statPage,
-                  currentTrait.translated,
-                ),
-              ],
-
+              embeds: [buildRegistEmbed(currentRegist, effectPage)],
               components: buildDetailComponents(
-                statPage,
-                totalStatPages,
-                currentTrait.translated,
+                effectPage,
+                totalEffectPages,
+                currentRegist.translated,
               ),
             });
           }
@@ -352,40 +327,36 @@ export default {
 
         if (i.isStringSelectMenu()) {
           const index = Number(i.values[0]);
+          const regist = displayData[index];
 
-          const trait = displayData[index];
-
-          if (!trait) {
+          if (!regist) {
             return i.reply({
-              content: "Trait tidak ditemukan.",
+              content: "Regist tidak ditemukan.",
               ephemeral: true,
             });
           }
 
-          currentTrait = trait;
-          statPage = 0;
+          currentRegist = regist;
+          effectPage = 0;
 
-          const lines = parseStatLines(trait.stat_effect);
-
-          const totalStatPages = Math.max(
+          const lines = parseEffectLines(regist.effect);
+          const totalEffectPages = Math.max(
             1,
-            Math.ceil(lines.length / STAT_PAGE_SIZE),
+            Math.ceil(lines.length / EFFECT_PAGE_SIZE),
           );
 
           return i.update({
             content: "",
-
-            embeds: [buildTraitEmbed(trait, statPage, trait.translated)],
-
+            embeds: [buildRegistEmbed(regist, effectPage)],
             components: buildDetailComponents(
-              statPage,
-              totalStatPages,
-              trait.translated,
+              effectPage,
+              totalEffectPages,
+              regist.translated,
             ),
           });
         }
       } catch (err) {
-        console.error("[trait] Collector error:", err);
+        console.error("[regist] Collector error:", err);
 
         if (!i.replied && !i.deferred) {
           await i
@@ -399,11 +370,7 @@ export default {
     });
 
     collector.on("end", async () => {
-      await interaction
-        .editReply({
-          components: [],
-        })
-        .catch(() => {});
+      await interaction.editReply({ components: [] }).catch(() => {});
     });
   },
 };
