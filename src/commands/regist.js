@@ -92,7 +92,7 @@ function buildRegistEmbed(regist, effectPage) {
 
       {
         name: "Level Studied",
-        value: String(regist.level_studied || "-"),
+        value: String(regist.levels_studied || "-"),
         inline: true,
       },
 
@@ -160,7 +160,7 @@ export default {
 
     let query = supabase
       .from("regist")
-      .select("name, effect, max_lv, level_studied");
+      .select("name, effect, max_lv, levels_studied");
 
     if (registName) {
       query = query.ilike("name", `%${registName}%`);
