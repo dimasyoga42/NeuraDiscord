@@ -17,6 +17,22 @@ const PAGE_SIZE = 25;
 const COLLECTOR_TIMEOUT = 120_000;
 const STAT_PAGE_SIZE = 3;
 
+async function translateText(text, to = "en") {
+  try {
+    if (!text) return text;
+
+    const result = await translate(text, {
+      to,
+    });
+
+    return result.text || text;
+  } catch (err) {
+    console.error("[translate] error:", err);
+
+    return text;
+  }
+}
+
 function buildMenuComponents(data, page) {
   const start = page * PAGE_SIZE;
   const end = start + PAGE_SIZE;
@@ -68,7 +84,7 @@ function getStatPage(lines, statPage) {
   return lines.slice(start, start + STAT_PAGE_SIZE);
 }
 
-function buildTraitEmbed(trait, statPage) {
+function buildTraitEmbed(trait, statPage, translated) {
   const lines = parseStatLines(trait.stat_effect);
 
   const totalStatPages = Math.max(1, Math.ceil(lines.length / STAT_PAGE_SIZE));
@@ -84,12 +100,12 @@ function buildTraitEmbed(trait, statPage) {
       inline: false,
     })
     .setFooter({
-      text: "Neura Sama",
+      text: translated ? "Translated to English" : "Neura Sama",
     })
     .setTimestamp();
 }
 
-function buildDetailComponents(statPage, totalStatPages) {
+function buildDetailComponents(statPage, totalStatPages, translated) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -108,6 +124,11 @@ function buildDetailComponents(statPage, totalStatPages) {
         .setLabel("Stat ➡")
         .setStyle(ButtonStyle.Primary)
         .setDisabled(statPage >= totalStatPages - 1),
+
+      new ButtonBuilder()
+        .setCustomId("translate_trait")
+        .setLabel(translated ? "Bahasa Indonesia" : "Translate EN")
+        .setStyle(ButtonStyle.Success),
     ),
   ];
 }
@@ -176,26 +197,22 @@ export default {
     if (lang === "en") {
       displayData = await Promise.all(
         data.map(async (item) => {
-          try {
-            if (!item.stat_effect) {
-              return item;
-            }
+          const translated = await translateText(item.stat_effect, "en");
 
-            const result = await translate(item.stat_effect, {
-              to: "en",
-            });
-
-            return {
-              ...item,
-              stat_effect: result.text || item.stat_effect,
-            };
-          } catch (err) {
-            console.error(`[translate] gagal translate ${item.name}:`, err);
-
-            return item;
-          }
+          return {
+            ...item,
+            original_stat_effect: item.stat_effect,
+            stat_effect: translated,
+            translated: true,
+          };
         }),
       );
+    } else {
+      displayData = data.map((item) => ({
+        ...item,
+        original_stat_effect: item.stat_effect,
+        translated: false,
+      }));
     }
 
     const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
@@ -255,6 +272,50 @@ export default {
             });
           }
 
+          if (i.customId === "translate_trait" && currentTrait) {
+            if (!currentTrait.translated) {
+              const translated = await translateText(
+                currentTrait.stat_effect,
+                "en",
+              );
+
+              currentTrait = {
+                ...currentTrait,
+                stat_effect: translated,
+                translated: true,
+              };
+            } else {
+              currentTrait = {
+                ...currentTrait,
+                stat_effect: currentTrait.original_stat_effect,
+                translated: false,
+              };
+            }
+
+            const lines = parseStatLines(currentTrait.stat_effect);
+
+            const totalStatPages = Math.max(
+              1,
+              Math.ceil(lines.length / STAT_PAGE_SIZE),
+            );
+
+            return i.update({
+              embeds: [
+                buildTraitEmbed(
+                  currentTrait,
+                  statPage,
+                  currentTrait.translated,
+                ),
+              ],
+
+              components: buildDetailComponents(
+                statPage,
+                totalStatPages,
+                currentTrait.translated,
+              ),
+            });
+          }
+
           if (currentTrait) {
             const lines = parseStatLines(currentTrait.stat_effect);
 
@@ -272,9 +333,19 @@ export default {
             }
 
             return i.update({
-              embeds: [buildTraitEmbed(currentTrait, statPage)],
+              embeds: [
+                buildTraitEmbed(
+                  currentTrait,
+                  statPage,
+                  currentTrait.translated,
+                ),
+              ],
 
-              components: buildDetailComponents(statPage, totalStatPages),
+              components: buildDetailComponents(
+                statPage,
+                totalStatPages,
+                currentTrait.translated,
+              ),
             });
           }
         }
@@ -304,9 +375,13 @@ export default {
           return i.update({
             content: "",
 
-            embeds: [buildTraitEmbed(trait, statPage)],
+            embeds: [buildTraitEmbed(trait, statPage, trait.translated)],
 
-            components: buildDetailComponents(statPage, totalStatPages),
+            components: buildDetailComponents(
+              statPage,
+              totalStatPages,
+              trait.translated,
+            ),
           });
         }
       } catch (err) {
