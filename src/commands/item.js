@@ -10,6 +10,21 @@ import {
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
+// Encode URL gambar agar karakter spesial (spasi, ', [, ]) tidak rusak di Discord
+function encodeImageUrl(url) {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    urlObj.pathname = urlObj.pathname
+      .split("/")
+      .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
+      .join("/");
+    return urlObj.toString();
+  } catch {
+    return encodeURI(url);
+  }
+}
+
 function formatEffects(effects) {
   if (!effects) return "-";
 
@@ -73,6 +88,7 @@ export default {
 
       const query = interaction.options.getString("name");
 
+      // Fetch items
       const { data, error } = await supabase
         .from("item_v2")
         .select("*")
@@ -82,19 +98,48 @@ export default {
         return await interaction.editReply("item tidak ditemukan");
       }
 
-      const itemsWithImages = await Promise.all(
-        data.map(async (item) => {
-          const { data: images } = await supabase
-            .from("appview")
-            .select("name, image_url")
-            .ilike("name", `%${item.ItemName}%`);
+      const itemNames = data.map((item) => item.ItemName);
 
-          return {
-            ...item,
-            images: images?.map((img) => img.image_url).filter(Boolean) || [],
-          };
-        }),
-      );
+      // Ambil semua gambar sekaligus dengan exact match
+      const { data: allImages } = await supabase
+        .from("appview")
+        .select("name, image_url")
+        .in("name", itemNames);
+
+      // Group gambar per nama item (dengan encode URL)
+      const imageMap = {};
+      if (allImages) {
+        for (const img of allImages) {
+          if (!img.image_url) continue;
+          if (!imageMap[img.name]) imageMap[img.name] = [];
+          imageMap[img.name].push(encodeImageUrl(img.image_url));
+        }
+      }
+
+      // Fallback ilike hanya untuk item yang belum punya gambar
+      const missingNames = itemNames.filter((name) => !imageMap[name]);
+      if (missingNames.length > 0) {
+        await Promise.all(
+          missingNames.map(async (name) => {
+            const { data: imgs } = await supabase
+              .from("appview")
+              .select("name, image_url")
+              .ilike("name", `%${name}%`);
+
+            if (imgs && imgs.length > 0) {
+              imageMap[name] = imgs
+                .filter((img) => img.image_url)
+                .map((img) => encodeImageUrl(img.image_url));
+            }
+          }),
+        );
+      }
+
+      // Gabungkan item dengan gambarnya
+      const itemsWithImages = data.map((item) => ({
+        ...item,
+        images: imageMap[item.ItemName] || [],
+      }));
 
       let page = 0;
       let imagePage = 0;
@@ -175,15 +220,11 @@ export default {
           const currentItem = itemsWithImages[page];
 
           if (btn.customId === "next_image") {
-            if (imagePage < currentItem.images.length - 1) {
-              imagePage++;
-            }
+            if (imagePage < currentItem.images.length - 1) imagePage++;
           }
 
           if (btn.customId === "prev_image") {
-            if (imagePage > 0) {
-              imagePage--;
-            }
+            if (imagePage > 0) imagePage--;
           }
 
           await btn.update({
@@ -206,9 +247,7 @@ export default {
 
       collector.on("end", async () => {
         try {
-          await interaction.editReply({
-            components: [],
-          });
+          await interaction.editReply({ components: [] });
         } catch {}
       });
     } catch (err) {
