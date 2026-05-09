@@ -8,7 +8,7 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 
-import translate from "@vitalets/google-translate-api";
+import translate from "google-translate-api-x";
 
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
@@ -70,6 +70,7 @@ function getStatPage(lines, statPage) {
 
 function buildTraitEmbed(trait, statPage) {
   const lines = parseStatLines(trait.stat_effect);
+
   const totalStatPages = Math.max(1, Math.ceil(lines.length / STAT_PAGE_SIZE));
 
   const pageLines = getStatPage(lines, statPage);
@@ -180,13 +181,13 @@ export default {
               return item;
             }
 
-            const { text } = await translate(item.stat_effect, {
+            const result = await translate(item.stat_effect, {
               to: "en",
             });
 
             return {
               ...item,
-              stat_effect: text || item.stat_effect,
+              stat_effect: result.text || item.stat_effect,
             };
           } catch (err) {
             console.error(`[translate] gagal translate ${item.name}:`, err);
@@ -205,6 +206,7 @@ export default {
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
+
       components: buildMenuComponents(displayData, currentPage),
     });
 
@@ -228,7 +230,9 @@ export default {
 
             return i.update({
               content: pageContent(currentPage, totalPages),
+
               embeds: [],
+
               components: buildMenuComponents(displayData, currentPage),
             });
           }
@@ -244,7 +248,9 @@ export default {
           if (i.customId === "prev_page" || i.customId === "next_page") {
             return i.update({
               content: pageContent(currentPage, totalPages),
+
               embeds: [],
+
               components: buildMenuComponents(displayData, currentPage),
             });
           }
@@ -267,13 +273,14 @@ export default {
 
             return i.update({
               embeds: [buildTraitEmbed(currentTrait, statPage)],
+
               components: buildDetailComponents(statPage, totalStatPages),
             });
           }
         }
 
         if (i.isStringSelectMenu()) {
-          const index = parseInt(i.values[0]);
+          const index = Number(i.values[0]);
 
           const trait = displayData[index];
 
@@ -296,7 +303,9 @@ export default {
 
           return i.update({
             content: "",
+
             embeds: [buildTraitEmbed(trait, statPage)],
+
             components: buildDetailComponents(statPage, totalStatPages),
           });
         }
