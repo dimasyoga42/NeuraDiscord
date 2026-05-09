@@ -21,12 +21,13 @@ export default {
           {
             name: "Menu Toram",
             value: [
-              "`/itemfilter`",
-              "`/buff`",
-              "`/bos`",
-              "`/xtal`",
-              "`/trait`",
-              "`/boost`",
+              "/itemfilter",
+              "/buff",
+              "/bos",
+              "/xtal",
+              "/trait",
+              "/boost",
+              "/item",
             ].join("\n"),
           },
           {

@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 
 import { supabase } from "../db/supabase.js";
+import { color } from "../config/color.js";
 
 function formatEffects(effects) {
   if (!effects) return "-";
@@ -18,7 +19,6 @@ function formatEffects(effects) {
     .filter((v) => v && !v.toLowerCase().includes("amount"));
 
   const priority = [];
-
   const normal = [];
 
   for (const stat of cleaned) {
@@ -33,6 +33,23 @@ function formatEffects(effects) {
     .map((v) => `• ${v}`)
     .join("\n")
     .slice(0, 1024);
+}
+
+function createEmbed(item, imageUrl, index, total) {
+  return new EmbedBuilder()
+    .setColor(color.cyan)
+    .setTitle(item.ItemName || "Unknown Item")
+    .setDescription(
+      `Stat\n${formatEffects(item.Effects)}\n\n` +
+        `Duration\n- ${item.Duration || "-"}\n\n` +
+        `Process\n- ${item.Process || "-"}\n\n` +
+        `Obtained From\n- ${(item.ObtainedFrom || "-").slice(0, 1000)}`,
+    )
+    .setImage(imageUrl || null)
+    .setFooter({
+      text: `Item ${index + 1} dari ${total}`,
+    })
+    .setTimestamp();
 }
 
 export default {
@@ -57,70 +74,59 @@ export default {
       const { data, error } = await supabase
         .from("item_v2")
         .select("*")
-        .ilike("ItemName", `%${query}%`);
+        .ilike("ItemName", `%${query}%`)
+        .limit(50);
 
-      if (error || !data?.length) {
-        return interaction.editReply("item tidak ditemukan");
+      if (error || !data || data.length === 0) {
+        return await interaction.editReply("item tidak ditemukan");
       }
 
-      let currentPage = 0;
+      const itemsWithImages = await Promise.all(
+        data.map(async (item) => {
+          const { data: imageData } = await supabase
+            .from("appview")
+            .select("image_url")
+            .ilike("name", `%${item.ItemName}%`)
+            .limit(1)
+            .single();
 
-      const generateEmbed = (page) => {
-        const item = data[page];
+          return {
+            ...item,
+            image_url: imageData?.image_url || null,
+          };
+        }),
+      );
 
-        return new EmbedBuilder()
-          .setTitle(item.ItemName || "-")
-          .setDescription(`Item Search`)
-          .addFields([
-            {
-              name: "Category",
-              value: item.Category || "-",
-              inline: true,
-            },
-            {
-              name: "Duration",
-              value: item.Duration || "-",
-              inline: true,
-            },
-            {
-              name: "Process",
-              value: item.Process || "-",
-              inline: true,
-            },
-            {
-              name: "Stat",
-              value: formatEffects(item.Effects),
-            },
-            {
-              name: "Obtained From",
-              value: (item.ObtainedFrom || "-").slice(0, 1024),
-            },
-          ])
-          .setFooter({
-            text: `Page ${page + 1} / ${data.length}`,
-          })
-          .setTimestamp();
-      };
+      let page = 0;
 
-      const generateButtons = (page) => {
+      const generateButtons = () => {
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder()
-            .setCustomId("prev_page")
+            .setCustomId("prev_item")
             .setLabel("◀ Prev")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
 
           new ButtonBuilder()
-            .setCustomId("next_page")
+            .setCustomId("next_item")
             .setLabel("Next ▶")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === data.length - 1),
+            .setDisabled(page === itemsWithImages.length - 1),
         );
       };
 
+      const firstItem = itemsWithImages[page];
+
       const msg = await interaction.editReply({
-        embeds: [generateEmbed(currentPage)],
-        components: [generateButtons(currentPage)],
+        embeds: [
+          createEmbed(
+            firstItem,
+            firstItem.image_url,
+            page,
+            itemsWithImages.length,
+          ),
+        ],
+        components: [generateButtons()],
       });
 
       const collector = msg.createMessageComponentCollector({
@@ -128,26 +134,35 @@ export default {
         time: 120000,
       });
 
-      collector.on("collect", async (i) => {
+      collector.on("collect", async (btn) => {
         try {
-          if (i.user.id !== interaction.user.id) {
-            return i.reply({
+          if (btn.user.id !== interaction.user.id) {
+            return await btn.reply({
               content: "ini bukan menu kamu",
               ephemeral: true,
             });
           }
 
-          if (i.customId === "next_page") {
-            currentPage++;
+          if (btn.customId === "next_item") {
+            page++;
           }
 
-          if (i.customId === "prev_page") {
-            currentPage--;
+          if (btn.customId === "prev_item") {
+            page--;
           }
 
-          await i.update({
-            embeds: [generateEmbed(currentPage)],
-            components: [generateButtons(currentPage)],
+          const currentItem = itemsWithImages[page];
+
+          await btn.update({
+            embeds: [
+              createEmbed(
+                currentItem,
+                currentItem.image_url,
+                page,
+                itemsWithImages.length,
+              ),
+            ],
+            components: [generateButtons()],
           });
         } catch (err) {
           console.log(err);
