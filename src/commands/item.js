@@ -1,5 +1,13 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { supabase } from "../db/supabase";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  EmbedBuilder,
+  SlashCommandBuilder,
+} from "discord.js";
+
+import { supabase } from "../db/supabase.js";
 
 function formatEffects(effects) {
   if (!effects) return "-";
@@ -10,6 +18,7 @@ function formatEffects(effects) {
     .filter((v) => v && !v.toLowerCase().includes("amount"));
 
   const priority = [];
+
   const normal = [];
 
   for (const stat of cleaned) {
@@ -40,22 +49,124 @@ export default {
     ),
 
   async execute(interaction) {
-    const query = interaction.options.getString("name");
-    const data = await supabase
-      .from("item_v2")
-      .select("*")
-      .ilike("name", `%${query}%`);
-    const emb = new EmbedBuilder()
-      .setTitle("item search")
-      .setTimestamp()
-      .setFields(
-        data.data.map((item) => ({
-          name: item.ItemName,
-          value: `Stat:\n${formatEffects(item.effects)}\nDuration:\n- ${item.Duration}\nProcess:\n- ${item.Process}\nobtained From:\n- ${item.ObtainedFrom}`,
-        })),
-      );
-    await interaction.EditReplay({
-      embeds: [emb],
-    });
+    try {
+      await interaction.deferReply();
+
+      const query = interaction.options.getString("name");
+
+      const { data, error } = await supabase
+        .from("item_v2")
+        .select("*")
+        .ilike("ItemName", `%${query}%`);
+
+      if (error || !data?.length) {
+        return interaction.editReply("item tidak ditemukan");
+      }
+
+      let currentPage = 0;
+
+      const generateEmbed = (page) => {
+        const item = data[page];
+
+        return new EmbedBuilder()
+          .setTitle(item.ItemName || "-")
+          .setDescription(`Item Search`)
+          .addFields([
+            {
+              name: "Category",
+              value: item.Category || "-",
+              inline: true,
+            },
+            {
+              name: "Duration",
+              value: item.Duration || "-",
+              inline: true,
+            },
+            {
+              name: "Process",
+              value: item.Process || "-",
+              inline: true,
+            },
+            {
+              name: "Stat",
+              value: formatEffects(item.Effects),
+            },
+            {
+              name: "Obtained From",
+              value: (item.ObtainedFrom || "-").slice(0, 1024),
+            },
+          ])
+          .setFooter({
+            text: `Page ${page + 1} / ${data.length}`,
+          })
+          .setTimestamp();
+      };
+
+      const generateButtons = (page) => {
+        return new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("prev_page")
+            .setLabel("◀ Prev")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === 0),
+
+          new ButtonBuilder()
+            .setCustomId("next_page")
+            .setLabel("Next ▶")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === data.length - 1),
+        );
+      };
+
+      const msg = await interaction.editReply({
+        embeds: [generateEmbed(currentPage)],
+        components: [generateButtons(currentPage)],
+      });
+
+      const collector = msg.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 120000,
+      });
+
+      collector.on("collect", async (i) => {
+        try {
+          if (i.user.id !== interaction.user.id) {
+            return i.reply({
+              content: "ini bukan menu kamu",
+              ephemeral: true,
+            });
+          }
+
+          if (i.customId === "next_page") {
+            currentPage++;
+          }
+
+          if (i.customId === "prev_page") {
+            currentPage--;
+          }
+
+          await i.update({
+            embeds: [generateEmbed(currentPage)],
+            components: [generateButtons(currentPage)],
+          });
+        } catch (err) {
+          console.log(err);
+        }
+      });
+
+      collector.on("end", async () => {
+        try {
+          await interaction.editReply({
+            components: [],
+          });
+        } catch {}
+      });
+    } catch (err) {
+      console.log(err);
+
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply("terjadi kesalahan");
+      }
+    }
   },
 };
