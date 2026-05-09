@@ -7,7 +7,7 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from "discord.js";
-
+import translate from "google-translate-api-x";
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
@@ -62,6 +62,18 @@ function buildTraitEmbed(trait) {
     .setTimestamp();
 }
 
+// ✅ Tombol kembali ke list setelah lihat detail
+function buildDetailComponents() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("back_to_list")
+        .setLabel("◀ Kembali")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  ];
+}
+
 function pageContent(page, total) {
   return `Silahkan pilih trait\nPage ${page + 1} / ${total}`;
 }
@@ -74,21 +86,34 @@ export default {
   data: new SlashCommandBuilder()
     .setName("trait")
     .setDescription("melihat information trait")
+    // ✅ Fix: dua addStringOption terpisah, bukan satu yang di-override
     .addStringOption((option) =>
       option
         .setName("name")
         .setDescription("masukan nama trait")
         .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("lang")
+        .setDescription("bahasa hasil (id/en)")
+        .setRequired(false)
+        .addChoices(
+          { name: "Indonesia", value: "id" },
+          { name: "English", value: "en" },
+        ),
     ),
 
   async execute(interaction) {
     await interaction.deferReply();
 
-    // Fetch data
-    let query = supabase.from("ablityv2").select("name, stat_effect");
     const traitName = interaction.options.getString("name");
+    const lang = interaction.options.getString("lang");
+
+    let query = supabase.from("ablityv2").select("name, stat_effect");
     if (traitName) query = query.ilike("name", `%${traitName}%`);
 
+    // ✅ Fix: error check dulu sebelum translate
     const { data, error } = await query;
 
     if (error) {
@@ -100,42 +125,62 @@ export default {
       return interaction.editReply("Data trait tidak ditemukan.");
     }
 
-    // Send initial menu
-    const totalPages = Math.ceil(data.length / PAGE_SIZE);
+    // ✅ Fix: translate di-await, hasilnya dipakai, ada fallback kalau gagal
+    let displayData = data;
+    if (lang === "en") {
+      displayData = await Promise.all(
+        data.map(async (item) => {
+          try {
+            const res = await translate(item.name, { to: "en" });
+            return { ...item, name: res.text };
+          } catch {
+            return item; // fallback nama asli kalau translate error
+          }
+        }),
+      );
+    }
+
+    const totalPages = Math.ceil(displayData.length / PAGE_SIZE);
     let currentPage = 0;
 
     const msg = await interaction.editReply({
       content: pageContent(currentPage, totalPages),
-      components: buildMenuComponents(data, currentPage),
+      components: buildMenuComponents(displayData, currentPage),
     });
 
-    // Collect interactions
     const collector = msg.createMessageComponentCollector({
       time: COLLECTOR_TIMEOUT,
     });
 
     collector.on("collect", async (i) => {
-      // Guard: only the command author
       if (i.user.id !== interaction.user.id) {
         return i.reply({ content: "Ini bukan menu kamu.", ephemeral: true });
       }
 
       try {
-        // Button: pagination
         if (i.isButton()) {
+          // ✅ Fix: handle tombol kembali ke list
+          if (i.customId === "back_to_list") {
+            return i.update({
+              content: pageContent(currentPage, totalPages),
+              embeds: [],
+              components: buildMenuComponents(displayData, currentPage),
+            });
+          }
+
           if (i.customId === "prev_page") currentPage--;
           if (i.customId === "next_page") currentPage++;
 
           return i.update({
             content: pageContent(currentPage, totalPages),
-            components: buildMenuComponents(data, currentPage),
+            embeds: [],
+            components: buildMenuComponents(displayData, currentPage),
           });
         }
 
-        // Select menu: show trait detail
         if (i.isStringSelectMenu()) {
           const index = parseInt(i.values[0]);
-          const trait = data[index];
+          const trait = displayData[index];
 
           if (!trait) {
             return i.reply({
@@ -144,15 +189,15 @@ export default {
             });
           }
 
+          // ✅ Fix: tampilkan tombol kembali supaya user bisa balik ke list
           return i.update({
             content: "",
             embeds: [buildTraitEmbed(trait)],
-            components: [],
+            components: buildDetailComponents(),
           });
         }
       } catch (err) {
         console.error("[trait] Collector error:", err);
-
         if (!i.replied && !i.deferred) {
           await i
             .reply({ content: "Terjadi kesalahan.", ephemeral: true })
