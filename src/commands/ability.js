@@ -7,7 +7,7 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from "discord.js";
-import translate from "google-translate-api-x";
+import { translate } from "@vitalets/google-translate-api";
 import { supabase } from "../db/supabase.js";
 import { color } from "../config/color.js";
 
@@ -62,7 +62,6 @@ function buildTraitEmbed(trait) {
     .setTimestamp();
 }
 
-// ✅ Tombol kembali ke list setelah lihat detail
 function buildDetailComponents() {
   return [
     new ActionRowBuilder().addComponents(
@@ -86,7 +85,6 @@ export default {
   data: new SlashCommandBuilder()
     .setName("trait")
     .setDescription("melihat information trait")
-    // ✅ Fix: dua addStringOption terpisah, bukan satu yang di-override
     .addStringOption((option) =>
       option
         .setName("name")
@@ -113,7 +111,6 @@ export default {
     let query = supabase.from("ablityv2").select("name, stat_effect");
     if (traitName) query = query.ilike("name", `%${traitName}%`);
 
-    // ✅ Fix: error check dulu sebelum translate
     const { data, error } = await query;
 
     if (error) {
@@ -125,13 +122,13 @@ export default {
       return interaction.editReply("Data trait tidak ditemukan.");
     }
 
-    // ✅ Fix: translate di-await, hasilnya dipakai, ada fallback kalau gagal
+    // Translate nama trait kalau lang = en
     let displayData = data;
     if (lang === "en") {
       displayData = await Promise.all(
         data.map(async (item) => {
           try {
-            const res = await translate(item.name, { to: "en" });
+            const res = await translate(item.stat_effect, { to: "en" });
             return { ...item, name: res.text };
           } catch {
             return item; // fallback nama asli kalau translate error
@@ -159,7 +156,6 @@ export default {
 
       try {
         if (i.isButton()) {
-          // ✅ Fix: handle tombol kembali ke list
           if (i.customId === "back_to_list") {
             return i.update({
               content: pageContent(currentPage, totalPages),
@@ -189,7 +185,6 @@ export default {
             });
           }
 
-          // ✅ Fix: tampilkan tombol kembali supaya user bisa balik ke list
           return i.update({
             content: "",
             embeds: [buildTraitEmbed(trait)],
