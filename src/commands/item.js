@@ -35,7 +35,7 @@ function formatEffects(effects) {
     .slice(0, 1024);
 }
 
-function createEmbed(item, imageUrl, index, total) {
+function createEmbed(item, imageUrl, index, total, imageIndex, imageTotal) {
   return new EmbedBuilder()
     .setColor(color.cyan)
     .setTitle(item.ItemName || "Unknown Item")
@@ -47,7 +47,9 @@ function createEmbed(item, imageUrl, index, total) {
     )
     .setImage(imageUrl || null)
     .setFooter({
-      text: `Item ${index + 1} dari ${total}`,
+      text:
+        `Item ${index + 1}/${total}` +
+        ` • Image ${imageIndex + 1}/${imageTotal}`,
     })
     .setTimestamp();
 }
@@ -74,8 +76,7 @@ export default {
       const { data, error } = await supabase
         .from("item_v2")
         .select("*")
-        .ilike("ItemName", `%${query}%`)
-        .limit(50);
+        .ilike("ItemName", `%${query}%`);
 
       if (error || !data || data.length === 0) {
         return await interaction.editReply("item tidak ditemukan");
@@ -83,47 +84,65 @@ export default {
 
       const itemsWithImages = await Promise.all(
         data.map(async (item) => {
-          const { data: imageData } = await supabase
+          const { data: images } = await supabase
             .from("appview")
-            .select("image_url")
-            .ilike("name", `%${item.ItemName}%`)
-            .limit(1)
-            .single();
+            .select("name, image_url")
+            .ilike("name", `%${item.ItemName}%`);
 
           return {
             ...item,
-            image_url: imageData?.image_url || null,
+            images: images?.map((img) => img.image_url).filter(Boolean) || [],
           };
         }),
       );
 
       let page = 0;
+      let imagePage = 0;
 
       const generateButtons = () => {
+        const currentItem = itemsWithImages[page];
+
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("prev_item")
-            .setLabel("◀ Prev")
+            .setLabel("⬅ Item")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
 
           new ButtonBuilder()
             .setCustomId("next_item")
-            .setLabel("Next ▶")
+            .setLabel("Item ➡")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === itemsWithImages.length - 1),
+
+          new ButtonBuilder()
+            .setCustomId("prev_image")
+            .setLabel("🖼 ⬅")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(imagePage === 0),
+
+          new ButtonBuilder()
+            .setCustomId("next_image")
+            .setLabel("🖼 ➡")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(
+              imagePage === currentItem.images.length - 1 ||
+                currentItem.images.length === 0,
+            ),
         );
       };
 
-      const firstItem = itemsWithImages[page];
+      const firstItem = itemsWithImages[0];
 
       const msg = await interaction.editReply({
         embeds: [
           createEmbed(
             firstItem,
-            firstItem.image_url,
+            firstItem.images[0] || null,
             page,
             itemsWithImages.length,
+            imagePage,
+            firstItem.images.length || 1,
           ),
         ],
         components: [generateButtons()],
@@ -145,21 +164,37 @@ export default {
 
           if (btn.customId === "next_item") {
             page++;
+            imagePage = 0;
           }
 
           if (btn.customId === "prev_item") {
             page--;
+            imagePage = 0;
           }
 
           const currentItem = itemsWithImages[page];
+
+          if (btn.customId === "next_image") {
+            if (imagePage < currentItem.images.length - 1) {
+              imagePage++;
+            }
+          }
+
+          if (btn.customId === "prev_image") {
+            if (imagePage > 0) {
+              imagePage--;
+            }
+          }
 
           await btn.update({
             embeds: [
               createEmbed(
                 currentItem,
-                currentItem.image_url,
+                currentItem.images[imagePage] || null,
                 page,
                 itemsWithImages.length,
+                imagePage,
+                currentItem.images.length || 1,
               ),
             ],
             components: [generateButtons()],
