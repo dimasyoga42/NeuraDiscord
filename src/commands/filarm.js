@@ -91,9 +91,9 @@ export default {
         .setFooter({
           text: `Character Lv ${data.inputConfig.characterLevel} • PROF Lv ${data.inputConfig.professionLevel}`,
         })
-        .setTimestamp(new Date(data.timestamp));
+        .setTimestamp();
 
-      await interaction.reply({
+      await interaction.Editreply({
         embeds: [emb],
       });
     } catch (err) {
