@@ -32,9 +32,7 @@ export default {
         });
       }
 
-      const stepsText = data.steps
-        .map((step, index) => `${index + 1}. ${step}`)
-        .join("\n\n");
+      const stepsText = data.steps.map((step, index) => `${step}`).join("\n");
 
       const positiveStats = data.inputConfig.positiveStats
         .map((s) => `${s.name} ${s.level}`)
@@ -87,10 +85,7 @@ export default {
           },
           {
             name: "Steps",
-            value:
-              stepsText.length > 1024
-                ? `${stepsText.slice(0, 1000)}...`
-                : stepsText,
+            value: stepsText.length > 1024 ? `${stepsText}` : stepsText,
             inline: false,
           },
         )
