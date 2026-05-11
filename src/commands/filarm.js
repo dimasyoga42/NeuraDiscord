@@ -15,6 +15,8 @@ export default {
     ),
 
   async execute(interaction) {
+    await interaction.deferReply();
+
     const query = interaction.options.getString("stat");
 
     const baseUrl = "https://neurapi.mochinime.cyou/api/toram/filarm?text=";
@@ -25,9 +27,8 @@ export default {
       const data = res.data;
 
       if (!data.ok || !data.hasValidResult) {
-        return await interaction.reply({
+        return await interaction.editReply({
           content: "stat tidak ditemukan atau hasil tidak valid",
-          ephemeral: true,
         });
       }
 
@@ -45,7 +46,9 @@ export default {
 
       const emb = new EmbedBuilder()
         .setTitle("Simulator Filstat Armor")
-        .setDescription(`Simulator`)
+        .setDescription(
+          `Berikut hasil simulasi filstat untuk query:\n\`${query}\``,
+        )
         .addFields(
           {
             name: "Positive Stats",
@@ -84,24 +87,26 @@ export default {
           },
           {
             name: "Steps",
-            value: stepsText.length > 1024 ? `${stepsText}` : stepsText,
+            value:
+              stepsText.length > 1024
+                ? `${stepsText.slice(0, 1000)}...`
+                : stepsText,
             inline: false,
           },
         )
         .setFooter({
           text: `Character Lv ${data.inputConfig.characterLevel} • PROF Lv ${data.inputConfig.professionLevel}`,
         })
-        .setTimestamp();
+        .setTimestamp(new Date(data.timestamp));
 
-      await interaction.Editreply({
+      await interaction.editReply({
         embeds: [emb],
       });
     } catch (err) {
       console.error(err);
 
-      await interaction.reply({
+      await interaction.editReply({
         content: "terjadi kesalahan saat mengambil data dari Rest API",
-        ephemeral: true,
       });
     }
   },
